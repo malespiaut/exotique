@@ -43,8 +43,12 @@
 
 #define kDegreeToRadian (M_PI / 180.0f)
 
+#ifndef kScreenWidth 
 #define kScreenWidth 320
+#endif
+#ifndef kScreenHeight
 #define kScreenHeight 240
+#endif
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
 // XXX: Data structures
@@ -75,9 +79,11 @@ typedef enum eKeyState eKeyState;
 typedef struct InputManager InputManager;
 struct InputManager
 {
-  int32_t buttons;
-  int16_t joy_x;
-  int16_t joy_y;
+  uint16_t buttons[4];
+  int16_t joy_x[4];
+  int16_t joy_y[4];
+  int32_t mouse_x;
+  int32_t mouse_y;
 };
 
 typedef struct ScreenManager ScreenManager;
@@ -87,8 +93,10 @@ struct ScreenManager
   SDL_Texture* texture;
   SDL_Window* window;
   bool fullscreen;
-  uint8_t screen[kScreenPixels];
-  uint32_t screen_rgba[kScreenPixels];
+  uint8_t* screen;
+  uint32_t* screen_rgba;
+  // uint8_t screen[kScreenPixels];
+  // uint32_t screen_rgba[kScreenPixels];
   uint32_t palette[256];
 };
 
@@ -97,6 +105,7 @@ struct GameManager
 {
   const char* name;
   ScreenManager screen_manager;
+  InputManager input_manager;
   bool exit;
   uint64_t ticks;
   SDL_Scancode key_map[7]; // 7 = eKey_count
@@ -108,6 +117,25 @@ struct ExotiqueInterface
 {
   uint8_t* screen;   //[kScreenWidth * kScreenHeight];
   uint32_t* palette; //[256];
+
+  int32_t* mouse_x;
+  int32_t* mouse_y;
+
+  uint16_t* player1_buttons;
+  int16_t* player1_joy_x;
+  int16_t* player1_joy_y;
+
+  uint16_t* player2_buttons;
+  int16_t* player2_joy_x;
+  int16_t* player2_joy_y;
+
+  uint16_t* player3_buttons;
+  int16_t* player3_joy_x;
+  int16_t* player3_joy_y;
+
+  uint16_t* player4_buttons;
+  int16_t* player4_joy_x;
+  int16_t* player4_joy_y;
 };
 
 // XXX: Global data structure
@@ -263,24 +291,54 @@ exotique_events(GameManager* gm)
 static void
 exotique_load(GameManager* gm, ExotiqueInterface* ei)
 {
-  // ScreenManager* sm = &gm->screen_manager;
+  ScreenManager* sm = &gm->screen_manager;
 
   gm->name = "🌴 Exotique - Preview Developer Version 0.1 - 24/09/18";
+
+  sm->screen = malloc(kScreenWidth * kScreenHeight * sizeof(uint8_t));
+  sm->screen_rgba = malloc(kScreenWidth * kScreenHeight * sizeof(uint32_t));
+
   ei->screen = gm->screen_manager.screen;
   ei->palette = gm->screen_manager.palette;
+
+  ei->mouse_x = &gm->input_manager.mouse_x;
+  ei->mouse_y = &gm->input_manager.mouse_y;
+
+  ei->player1_buttons = &gm->input_manager.buttons[0];
+  ei->player1_joy_x = &gm->input_manager.joy_x[0];
+  ei->player1_joy_y = &gm->input_manager.joy_y[0];
+
+  ei->player2_buttons = &gm->input_manager.buttons[1];
+  ei->player2_joy_x = &gm->input_manager.joy_x[1];
+  ei->player2_joy_y = &gm->input_manager.joy_y[1];
+
+  ei->player3_buttons = &gm->input_manager.buttons[2];
+  ei->player3_joy_x = &gm->input_manager.joy_x[2];
+  ei->player3_joy_y = &gm->input_manager.joy_y[2];
+
+  ei->player4_buttons = &gm->input_manager.buttons[3];
+  ei->player4_joy_x = &gm->input_manager.joy_x[3];
+  ei->player4_joy_y = &gm->input_manager.joy_y[3];
+
+  //memset(&ei->input, 0, sizeof(ei->input));
 }
 
-/*
 static void
 exotique_unload(GameManager* gm)
 {
+  ScreenManager* sm = &gm->screen_manager;
+
+  free(sm->screen);
+  free(sm->screen_rgba);
 }
-*/
 
 static void
 exotique_update(GameManager* gm)
 {
   gm->ticks = SDL_GetTicks64();
+
+  SDL_GetMouseState(&gm->input_manager.mouse_x, &gm->input_manager.mouse_y);
+  //SDL_GetGlobalMouseState(&gm->input_manager.mouse_x, &gm->input_manager.mouse_y);
 
   exotique_events(gm);
 }
@@ -298,7 +356,7 @@ sdl_load(GameManager* gm)
   sm->window = SDL_CreateWindow(gm->name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, kScreenWidth, kScreenHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_UTILITY);
   sdl_panic_check(!sm->window, "CreateWindow");
 
-  sm->renderer = SDL_CreateRenderer(sm->window, -1, SDL_RENDERER_PRESENTVSYNC);
+  sm->renderer = SDL_CreateRenderer(sm->window, -1, /*0*/SDL_RENDERER_PRESENTVSYNC);
   sdl_panic_check(!sm->renderer, "CreateRenderer");
 
   sm->texture = SDL_CreateTexture(sm->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, kScreenWidth, kScreenHeight);
@@ -342,6 +400,7 @@ main(const int argc, const char* argv[])
   }
 
   sdl_unload(&g_game_manager);
+  exotique_unload(&g_game_manager);
   SDL_Quit();
 
   return EXIT_SUCCESS;

@@ -51,66 +51,22 @@ extern int ERROR_ARCH_IS_NOT_DEFINED[-1];
 typedef struct ExotiqueInterface ExotiqueInterface;
 struct ExotiqueInterface
 {
-  u8* screen; /* [kScreenPixels] */
+  u8* screen;   /* [kScreenPixels] */
   u32* palette; /* [255] */
-  
-  i32* mouse_x;
-  i32* mouse_y;
-
-  u16* player1_buttons;
-  i16* player1_joy_x;
-  i16* player1_joy_y;
-
-  u16* player2_buttons;
-  i16* player2_joy_x;
-  i16* player2_joy_y;
-
-  u16* player3_buttons;
-  i16* player3_joy_x;
-  i16* player3_joy_y;
-
-  u16* player4_buttons;
-  i16* player4_joy_x;
-  i16* player4_joy_y;
 };
-
-enum color_e
-{
-  kTransparent,
-  kBlack,
-  kDarkBlue,
-  kBordeaux,
-  kDarkGreen,
-  kBrown,
-  kDarkGray,
-  kLightGray,
-  kWhite,
-  kRed,
-  kOrange,
-  kYellow,
-  kGreen,
-  kCyan,
-  kMauve,
-  kPink,
-  kFlesh
-};
-typedef enum color_e color_t;
 
 /* XXX: 32-bits PRNG - xoshiro128++ */
 
-/*
-static u32
+static /*inline*/ u32
 rotl(const u32 x, i32 k)
 {
   return (x << k) | (x >> (32 - k));
 }
-*/
 
 /* Completely arbitrary seeds */
-/*
 static u32 s[4] = {0x27cb588d, 0x096379a9, 0xe81f5914, 0x2ee1c98c};
 
-static u32
+u32
 next(void)
 {
   const u32 result = rotl(s[0] + s[3], 7) + s[0];
@@ -128,21 +84,32 @@ next(void)
 
   return result;
 }
-*/
 
-/* XXX: Drawing functions */
+/* Bit draw */
 
-static void
-pixel_draw(u8* screen, i32 x, i32 y, u8 color)
+static u8 tile[8] = {0x00, 0x3c, 0x42, 0x7e, 0x40, 0x42, 0x3c, 0x00};
+
+void
+bit_draw(ExotiqueInterface* ei, u8* sprite, i32 x, i32 y, i32 width, i32 height, u8 color)
 {
-  i32 position = x + (y * kScreenWidth);
-  if ((position >= 0) && (position < kScreenPixels))
+  i32 col;
+  i32 row;
+  for (row = 0; row < 8; ++row)
   {
-    screen[position]= color;
+    for (col = 0; col < 8; ++col)
+    {
+      if (sprite[row] << col & 0x80)
+      {
+        if ((x + col) >= 0 && (x + col <= kScreenWidth) && (y + row) >= 0 && (y + row) <= kScreenHeight)
+        {
+          ei->screen[(x + col) + kScreenWidth * (y + row)] = color;
+        }
+      }
+    }
   }
 }
 
-/* XXX: Exotique functions */
+/* XXX: Exotique interface functions */
 
 void
 game_load(ExotiqueInterface* ei)
@@ -170,18 +137,11 @@ game_load(ExotiqueInterface* ei)
 void
 game_update(ExotiqueInterface* ei)
 {
-  (void)ei;
-  /*
-  i32 i;
-  for (i = 0; i < kScreenPixels; ++i)
-  {
-    ei->screen[i] = 2 + (next() % 15);
-  }
-  */
+  sprite_draw(ei, tile, 20, 20, 5);
 }
 
 void
 game_draw(ExotiqueInterface* ei)
 {
-  pixel_draw(ei->screen, *ei->mouse_x, *ei->mouse_y, kRed);
+  (void)ei;
 }
