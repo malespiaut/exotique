@@ -1,59 +1,10 @@
-#if ARCH == 16
-typedef char i8;
-typedef unsigned char u8;
-typedef short i16;
-typedef unsigned short u16;
-typedef long i32;
-typedef unsigned long u32;
-typedef long long i64;
-typedef unsigned long long u64;
-typedef float f32;
-typedef double f64;
-#elif ARCH == 32
-typedef char i8;
-typedef unsigned char u8;
-typedef short i16;
-typedef unsigned short u16;
-typedef int i32;
-typedef unsigned int u32;
-typedef long long i64;
-typedef unsigned long long u64;
-typedef float f32;
-typedef double f64;
-#elif ARCH == 64
-typedef char i8;
-typedef unsigned char u8;
-typedef short i16;
-typedef unsigned short u16;
-typedef int i32;
-typedef unsigned int u32;
-typedef long i64;
-typedef unsigned long u64;
-typedef float f32;
-typedef double f64;
-#else
-/* PLEASE READ ME!!! */
-/* This piece of code IS DESIGNED TO TRIGGER A COMPILTION ERROR! */
-/* You MUST define ARCH on the line above (`#define ARCH 64`),
- * or using the compiler argument `-D` (for instance `-D ARCH=64`)
- * to avoid this compilation error. */
-extern int ERROR_ARCH_IS_NOT_DEFINED[-1];
-#endif
+#include "exotique.h"
 
-#ifndef kScreenWidth
-#define kScreenWidth 320
-#endif
-#ifndef kScreenHeight
-#define kScreenHeight 240
-#endif
+/* XXX: Screen size */
+
+const i32 kScreenWidth = 320;
+const i32 kScreenHeight = 200;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
-
-typedef struct ExotiqueInterface ExotiqueInterface;
-struct ExotiqueInterface
-{
-  u8* screen;   /* [kScreenPixels] */
-  u32* palette; /* [255] */
-};
 
 /* XXX: 32-bits PRNG - xoshiro128++ */
 
@@ -90,7 +41,7 @@ next(void)
 static u8 tile[8] = {0x00, 0x3c, 0x42, 0x7e, 0x40, 0x42, 0x3c, 0x00};
 
 void
-bit_draw(ExotiqueInterface* ei, u8* sprite, i32 x, i32 y, i32 width, i32 height, u8 color)
+sprite_draw(ExotiqueInterface* ei, u8* sprite, i32 x, i32 y, u8 color)
 {
   i32 col;
   i32 row;

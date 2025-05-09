@@ -13,14 +13,10 @@
 #include <SDL_image.h>
 #pragma GCC diagnostic pop
 
-// XXX: Defines
+// XXX: Screen size
 
-#ifndef kScreenWidth
-#define kScreenWidth 320
-#endif
-#ifndef kScreenHeight
-#define kScreenHeight 200
-#endif
+extern const int kScreenWidth;
+extern const int kScreenHeight;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
 // XXX: Data structures
@@ -121,7 +117,7 @@ struct ExotiqueInterface
 
 // XXX: Global data structure
 
-GameManager g_game_manager = {0};
+static GameManager g_game_manager = {0};
 ExotiqueInterface g_exotique_interface = {0};
 
 // XXX: game.c mandatory functions declarations
@@ -179,7 +175,7 @@ exotique_draw(GameManager* gm)
   {
     sm->screen_rgba[i] = sm->palette[sm->screen[i]];
   }
-  if (SDL_UpdateTexture(sm->texture, nullptr, sm->screen_rgba, sizeof(uint32_t) * kScreenWidth))
+  if (SDL_UpdateTexture(sm->texture, nullptr, sm->screen_rgba, (int)(sizeof(uint32_t) * (unsigned long)kScreenWidth)))
   {
     SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't update the given texture rectangle with new pixel data: %s", SDL_GetError());
     exotique_panic(gm);
@@ -215,6 +211,13 @@ exotique_events(GameManager* gm)
         gm->exit = true;
         break;
 
+      case SDL_KEYDOWN:
+        if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+        {
+          gm->exit = true;
+          break;
+        }
+        break;
       case SDL_WINDOWEVENT:
         if (event.window.event == SDL_WINDOWEVENT_CLOSE)
         {
@@ -278,8 +281,8 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
 
   gm->name = "🌴 Exotique v0.5β - SDL2 (25/05/09)";
 
-  sm->screen = malloc(kScreenWidth * kScreenHeight * sizeof(uint8_t));
-  sm->screen_rgba = malloc(kScreenWidth * kScreenHeight * sizeof(uint32_t));
+  sm->screen = malloc((unsigned long)kScreenPixels * sizeof(uint8_t));
+  sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(uint32_t));
 
   gm->key_map[eKey_up] = SDL_SCANCODE_UP;
   gm->key_map[eKey_down] = SDL_SCANCODE_DOWN;
