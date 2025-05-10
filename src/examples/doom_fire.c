@@ -36,26 +36,74 @@ next(void)
   return result;
 }
 
-/* Bit draw */
+/* XXX: Doom fire */
 
-static u8 tile[8] = {0x00, 0x3c, 0x42, 0x7e, 0x40, 0x42, 0x3c, 0x00};
-
-void
-sprite_draw(ExotiqueInterface* ei, u8* sprite, i32 x, i32 y, u8 color)
+static void
+fire_spread(u8* screen, i32 src)
 {
-  i32 col;
-  i32 row;
-  for (row = 0; row < 8; ++row)
+  i32 random_shift;
+  i32 current_x;
+  i32 new_x;
+  i32 dst;
+  u8 new_intensity;
+
+  /* Get the current pixel's intensity */
+  u8 pixel_intensity = screen[src];
+
+  /* If the current pixel has no intensity, set the pixel above to zero*/
+  if (pixel_intensity == 0)
   {
-    for (col = 0; col < 8; ++col)
+    screen[src - kScreenWidth] = 0;
+    return;
+  }
+
+  /* Create a small random shift (-1, 0, or 1) */
+  random_shift = (i32)((next() % 3) - 1);
+
+  /* Calculate new x-position with the random shift */
+  current_x = src % kScreenWidth;
+  new_x = current_x + random_shift;
+
+  /* Keep new_x within screen bounds */
+  if (new_x < 0)
+  {
+    new_x = 0;
+  }
+  if (new_x >= kScreenWidth)
+  {
+    new_x = kScreenWidth - 1;
+  }
+
+  /* Calculate the destination pixel's position (one row above) */
+  dst = (src - current_x) + new_x - kScreenWidth;
+
+  /* Skip if we're trying to modify the top row */
+  if (dst < kScreenWidth)
+  {
+    return;
+  }
+
+  /* Randomly decrease the pixel intensity by 0 or 1 */
+  new_intensity = (u8)(pixel_intensity - (u8)(next() % 2));
+  if (new_intensity > pixel_intensity)
+  {
+    new_intensity = 0; /* Handle underflow */
+  }
+
+  /* Set the new pixel intensity */
+  screen[dst] = new_intensity;
+}
+
+static void
+fire_draw(u8* screen)
+{
+  i32 x;
+  for (x = 0; x < kScreenWidth; ++x)
+  {
+    i32 y;
+    for (y = 1; y < kScreenHeight; ++y)
     {
-      if (sprite[row] << col & 0x80)
-      {
-        if ((x + col) >= 0 && (x + col <= kScreenWidth) && (y + row) >= 0 && (y + row) <= kScreenHeight)
-        {
-          ei->screen[(x + col) + kScreenWidth * (y + row)] = color;
-        }
-      }
+      fire_spread(screen, (u64)(y * kScreenWidth + x));
     }
   }
 }
@@ -67,32 +115,62 @@ game_load(ExotiqueInterface* ei)
 {
   /* Setting up the color palette */
   ei->palette[0] = 0x00000000;
-  ei->palette[1] = 0x000000ff;
-  ei->palette[2] = 0x430067ff;
-  ei->palette[3] = 0x94216aff;
-  ei->palette[4] = 0xff004dff;
-  ei->palette[5] = 0xff8426ff;
-  ei->palette[6] = 0xffdd34ff;
-  ei->palette[7] = 0x50e112ff;
-  ei->palette[8] = 0x3fa66fff;
-  ei->palette[9] = 0x365987ff;
-  ei->palette[10] = 0x0033ffff;
-  ei->palette[11] = 0x29adffff;
-  ei->palette[12] = 0x00ffccff;
-  ei->palette[13] = 0xfff1e8ff;
-  ei->palette[14] = 0xc2c3c7ff;
-  ei->palette[15] = 0xab5236ff;
-  ei->palette[16] = 0x5f574fff;
+  ei->palette[1] = 0x070707ff;
+  ei->palette[2] = 0x1f0707ff;
+  ei->palette[3] = 0x2f0f07ff;
+  ei->palette[4] = 0x470f07ff;
+  ei->palette[5] = 0x571707ff;
+  ei->palette[6] = 0x671f07ff;
+  ei->palette[7] = 0x771f07ff;
+  ei->palette[8] = 0x8f2707ff;
+  ei->palette[9] = 0x9f2f07ff;
+  ei->palette[10] = 0xaf3f07ff;
+  ei->palette[11] = 0xbf4707ff;
+  ei->palette[12] = 0xc74707ff;
+  ei->palette[13] = 0xdf4f07ff;
+  ei->palette[14] = 0xdf5707ff;
+  ei->palette[15] = 0xdf5707ff;
+  ei->palette[16] = 0xd75f07ff;
+  ei->palette[17] = 0xd75f07ff;
+  ei->palette[18] = 0xd7670fff;
+  ei->palette[19] = 0xcf6f0fff;
+  ei->palette[20] = 0xcf770fff;
+  ei->palette[21] = 0xcf7f0fff;
+  ei->palette[22] = 0xcf8717ff;
+  ei->palette[23] = 0xc78717ff;
+  ei->palette[24] = 0xc78f17ff;
+  ei->palette[25] = 0xc7971fff;
+  ei->palette[26] = 0xbf9f1fff;
+  ei->palette[27] = 0xbf9f1fff;
+  ei->palette[28] = 0xbfa727ff;
+  ei->palette[29] = 0xbfa727ff;
+  ei->palette[30] = 0xbfaf2fff;
+  ei->palette[31] = 0xb7af2fff;
+  ei->palette[32] = 0xb7b72fff;
+  ei->palette[33] = 0xb7b737ff;
+  ei->palette[34] = 0xcfcf6fff;
+  ei->palette[35] = 0xdfdf9fff;
+  ei->palette[36] = 0xefefc7ff;
+  ei->palette[37] = 0xffffffff;
+
+  {
+    i32 x;
+    i32 y = kScreenHeight - 1;
+    for (x = 0; x < kScreenWidth; ++x)
+    {
+      ei->screen[y * kScreenWidth + x] = 37;
+    }
+  }
 }
 
 void
 game_update(ExotiqueInterface* ei)
 {
-  sprite_draw(ei, tile, 20, 20, 5);
+  (void)ei;
 }
 
 void
 game_draw(ExotiqueInterface* ei)
 {
-  (void)ei;
+  fire_draw(ei->screen);
 }
