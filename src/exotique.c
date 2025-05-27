@@ -13,11 +13,14 @@
 #include <SDL_image.h>
 #pragma GCC diagnostic pop
 
-// XXX: Screen size
+// XXX: Screen and sound constants
 
 extern const int kScreenWidth;
 extern const int kScreenHeight;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
+
+#define kSoundSampleRate 44100
+#define kSoundSamples 2048
 
 // XXX: Data structures
 
@@ -79,11 +82,23 @@ struct ScreenManager
   uint32_t palette[256];
 };
 
+typedef struct SoundManager SoundManager;
+struct SoundManager
+{
+  SDL_AudioDeviceID device_id;
+  SDL_AudioSpec desired_spec;
+  SDL_AudioSpec obtained_spec;
+  int16_t* sound_buffer;
+  int16_t* internal_buffer;
+  uint32_t buffer_pos;
+};
+
 typedef struct GameManager GameManager;
 struct GameManager
 {
   const char* name;
   ScreenManager screen_manager;
+  SoundManager sound_manager;
   bool exit;
   SDL_Scancode key_map[7]; // 7 = eKey_count
   uint8_t key_states[7];   // 7 = eKey_count
@@ -108,11 +123,14 @@ struct ExotiqueInterface
 {
   uint8_t* screen;   //[kScreenWidth * kScreenHeight];
   uint32_t* palette; //[256];
+  int16_t* sound;    //[kSoundSamples];
 
   vec2i_t mouse;
   PlayerInput player[4];
 
   uint64_t ticks;
+  uint32_t sound_sample_rate;
+  uint32_t sound_samples;
 };
 
 // XXX: Global data structure
@@ -129,6 +147,7 @@ void game_draw(ExotiqueInterface* ei);
 // XXX: Functions declarations
 
 static void exotique_panic(GameManager* gm);
+static void sound_callback(void* userdata, uint8_t* stream, int len);
 
 // XXX: Input functions
 
@@ -275,14 +294,40 @@ exotique_events(GameManager* gm)
 }
 
 static void
+sound_callback(void* userdata, uint8_t* stream, int len)
+{
+  SoundManager* sound_manager = (SoundManager*)userdata;
+  int samples = (int)(len / (int)sizeof(int16_t));
+  int i;
+
+  for (i = 0; i < samples; ++i)
+  {
+    int16_t sample = 0;
+    if (sound_manager->buffer_pos < kSoundSamples)
+    {
+      sample = sound_manager->internal_buffer[sound_manager->buffer_pos];
+      sound_manager->buffer_pos++;
+    }
+    memcpy(stream + ((size_t)i * sizeof(int16_t)), &sample, sizeof(int16_t));
+  }
+}
+
+static void
 exotique_load(GameManager* gm, ExotiqueInterface* ei)
 {
   ScreenManager* sm = &gm->screen_manager;
+  SoundManager* sound_mgr = &gm->sound_manager;
 
   gm->name = "🌴 Exotique v0.5β - SDL2 (25/05/09)";
 
   sm->screen = malloc((unsigned long)kScreenPixels * sizeof(uint8_t));
   sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(uint32_t));
+
+  sound_mgr->sound_buffer = malloc(kSoundSamples * sizeof(int16_t));
+  sound_mgr->internal_buffer = malloc(kSoundSamples * sizeof(int16_t));
+  memset(sound_mgr->sound_buffer, 0, kSoundSamples * sizeof(int16_t));
+  memset(sound_mgr->internal_buffer, 0, kSoundSamples * sizeof(int16_t));
+  sound_mgr->buffer_pos = 0;
 
   gm->key_map[eKey_up] = SDL_SCANCODE_UP;
   gm->key_map[eKey_down] = SDL_SCANCODE_DOWN;
@@ -292,6 +337,9 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
 
   ei->screen = gm->screen_manager.screen;
   ei->palette = gm->screen_manager.palette;
+  ei->sound = sound_mgr->sound_buffer;
+  ei->sound_sample_rate = kSoundSampleRate;
+  ei->sound_samples = kSoundSamples;
 
   memset(&ei->mouse, 0, sizeof(ei->mouse));
   memset(&ei->player, 0, sizeof(ei->player));
@@ -301,19 +349,24 @@ static void
 exotique_unload(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
+  SoundManager* sound_mgr = &gm->sound_manager;
 
   free(sm->screen);
   free(sm->screen_rgba);
+  free(sound_mgr->sound_buffer);
+  free(sound_mgr->internal_buffer);
 }
 
 static void
 exotique_update(GameManager* gm, ExotiqueInterface* ei)
 {
+  SoundManager* sound_mgr = &gm->sound_manager;
+
   ei->ticks = SDL_GetTicks64();
 
   memset(&ei->mouse, 0, sizeof(ei->mouse));
   SDL_GetMouseState(&ei->mouse.x, &ei->mouse.y);
-  //SDL_GetGlobalMouseState(&gm->input_manager.mouse_x, &gm->input_manager.mouse_y);
+  // SDL_GetGlobalMouseState(&gm->input_manager.mouse_x, &gm->input_manager.mouse_y);
 
   memset(&ei->player, 0, sizeof(ei->player));
   exotique_events(gm);
@@ -333,6 +386,9 @@ exotique_update(GameManager* gm, ExotiqueInterface* ei)
   {
     bit_set(&ei->player[0].buttons, bRight);
   }
+
+  memcpy(sound_mgr->internal_buffer, ei->sound, kSoundSamples * sizeof(int16_t));
+  sound_mgr->buffer_pos = 0;
 }
 
 // XXX: SDL functions
@@ -341,14 +397,31 @@ static void
 sdl_load(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
+  SoundManager* sound_mgr = &gm->sound_manager;
 
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
   SDL_LogInfo(SDL_LOG_CATEGORY_SYSTEM, "SDL2 initialization");
-  if (SDL_Init(SDL_INIT_VIDEO))
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
   {
     SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Couldn't initialize the SDL library: %s", SDL_GetError());
     exotique_panic(gm);
   }
+
+  sound_mgr->desired_spec.freq = kSoundSampleRate;
+  sound_mgr->desired_spec.format = AUDIO_S16SYS;
+  sound_mgr->desired_spec.channels = 1;
+  sound_mgr->desired_spec.samples = 512;
+  sound_mgr->desired_spec.callback = sound_callback;
+  sound_mgr->desired_spec.userdata = sound_mgr;
+
+  sound_mgr->device_id = SDL_OpenAudioDevice(NULL, 0, &sound_mgr->desired_spec, &sound_mgr->obtained_spec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+  if (sound_mgr->device_id == 0)
+  {
+    SDL_LogCritical(SDL_LOG_CATEGORY_AUDIO, "Couldn't open audio device: %s", SDL_GetError());
+    exotique_panic(gm);
+  }
+
+  SDL_PauseAudioDevice(sound_mgr->device_id, 0);
 
   if (!(sm->window = SDL_CreateWindow(gm->name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, kScreenWidth, kScreenHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_UTILITY)))
   {
@@ -384,7 +457,9 @@ static void
 sdl_unload(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
+  SoundManager* sound_mgr = &gm->sound_manager;
 
+  SDL_CloseAudioDevice(sound_mgr->device_id);
   SDL_DestroyTexture(sm->texture);
   SDL_DestroyRenderer(sm->renderer);
   SDL_DestroyWindow(sm->window);

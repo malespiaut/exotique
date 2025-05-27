@@ -16,6 +16,50 @@ memzero(u8* dest, u64 len)
   }
 }
 
+/* Sound utilities */
+
+static f64
+sin_approx(f64 x)
+{
+  while (x > 3.14159265359)
+    x -= 6.28318530718;
+  while (x < -3.14159265359)
+    x += 6.28318530718;
+
+  if (x < 0)
+    return -sin_approx(-x);
+
+  if (x > 1.5707963268)
+    return sin_approx(3.14159265359 - x);
+
+  {
+    f64 x2 = x * x;
+    return x * (1.0 - x2 / 6.0 * (1.0 - x2 / 20.0 * (1.0 - x2 / 42.0)));
+  }
+}
+
+static void
+generate_beep(i16* sound_buffer, u32 samples, u32 sample_rate, i32 frequency, i32 amplitude)
+{
+  u32 i;
+  for (i = 0; i < samples; ++i)
+  {
+    f64 t = (f64)i / (f64)sample_rate;
+    f64 wave = (f64)amplitude * sin_approx(6.28318530718 * (f64)frequency * t);
+    sound_buffer[i] = (i16)wave;
+  }
+}
+
+static void
+clear_sound_buffer(i16* sound_buffer, u32 samples)
+{
+  u32 i;
+  for (i = 0; i < samples; ++i)
+  {
+    sound_buffer[i] = 0;
+  }
+}
+
 /* Game data structures */
 
 enum game_constants
@@ -81,6 +125,9 @@ struct game_s
   i32 difficulty;
   i32 bricks;
   i32 shoot;
+  i32 sound_wall_bounce;
+  i32 sound_paddle_bounce;
+  i32 sound_brick_bounce;
 };
 
 game_t g_game = {0};
@@ -138,18 +185,21 @@ ball_handle_wall_collision(void)
   {
     g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
     g_game.ball.position.xy.x += g_game.ball.slope.xy.x;
+    g_game.sound_wall_bounce = 1;
   }
 
   if (g_game.ball.position.xy.x < 0)
   {
     g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
     g_game.ball.position.xy.x += g_game.ball.slope.xy.x;
+    g_game.sound_wall_bounce = 1;
   }
 
   if (g_game.ball.position.xy.y < 0)
   {
     g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
     g_game.ball.position.xy.y += g_game.ball.slope.xy.y;
+    g_game.sound_wall_bounce = 1;
   }
 
   if (g_game.ball.position.xy.y > kScreenHeight - eBallHeight)
@@ -171,6 +221,7 @@ ball_handle_paddle_collision(void)
       (g_game.ball.position.xy.x <= paddle_right))
   {
     g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
+    g_game.sound_paddle_bounce = 1;
   }
 }
 
@@ -192,6 +243,7 @@ ball_handle_brick_collisions(void)
         g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
         --g_game.bricks;
         g_game.player.score += 10;
+        g_game.sound_brick_bounce = 1;
       }
       else if (rectangles_collide(g_game.ball.position.xy.x, next_y, eBallWidth, eBallHeight, g_game.brick[i].position.xy.x, g_game.brick[i].position.xy.y, g_game.brick[i].size.wh.width, g_game.brick[i].size.wh.height))
       {
@@ -199,6 +251,7 @@ ball_handle_brick_collisions(void)
         g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
         --g_game.bricks;
         g_game.player.score += 10;
+        g_game.sound_brick_bounce = 1;
       }
     }
   }
@@ -286,6 +339,9 @@ reset_game_state(void)
   g_game.ball.speed.xy.y = 1;
   g_game.ball.slope.xy.x = -1;
   g_game.ball.slope.xy.y = -1;
+  g_game.sound_wall_bounce = 0;
+  g_game.sound_paddle_bounce = 0;
+  g_game.sound_brick_bounce = 0;
 }
 
 void
@@ -302,12 +358,34 @@ game_load(ExotiqueInterface* ei)
   reset_game_state();
 }
 
+static void
+generate_game_audio(ExotiqueInterface* ei)
+{
+  clear_sound_buffer(ei->sound, ei->sound_samples);
+
+  if (g_game.sound_wall_bounce)
+  {
+    generate_beep(ei->sound, ei->sound_samples, ei->sound_sample_rate, 440, 8000);
+    g_game.sound_wall_bounce = 0;
+  }
+  else if (g_game.sound_paddle_bounce)
+  {
+    generate_beep(ei->sound, ei->sound_samples, ei->sound_sample_rate, 330, 10000);
+    g_game.sound_paddle_bounce = 0;
+  }
+  else if (g_game.sound_brick_bounce)
+  {
+    generate_beep(ei->sound, ei->sound_samples, ei->sound_sample_rate, 660, 6000);
+    g_game.sound_brick_bounce = 0;
+  }
+}
+
 void
 game_update(ExotiqueInterface* ei)
 {
-  (void)ei;
   ball_move();
   g_game.player.position.xy.x = ei->mouse.xy.x;
+  generate_game_audio(ei);
 }
 
 static void
