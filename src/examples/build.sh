@@ -5,6 +5,6 @@ CFLAGS="-Wall -Wextra -Wpedantic -Wshadow -Werror -Wfatal-errors $EXTRA_CFLAGS"
 ARCH=64
 GAME="$1"
 
-gcc -c $CFLAGS -std=c23 -O0 -ggdb3 -I /usr/include/SDL2 -D_REENTRANT ../exotique.c
-gcc -c $CFLAGS -std=c89 -O0 -ggdb3 -I ../ -nostdlib -nostdinc -nodefaultlibs -nolibc -ffreestanding -D ARCH=$ARCH "$GAME".c
-gcc exotique.o "$GAME".o -lSDL2 -o "$GAME"
+gcc -c $CFLAGS -fsanitize=address -std=c23 -O0 -ggdb3 -I /usr/include/SDL2 -D_REENTRANT ../exotique.c
+gcc -c $CFLAGS -fsanitize=address -std=c89 -O0 -ggdb3 -I ../ -nostdlib -nostdinc -nodefaultlibs -nolibc -ffreestanding -D ARCH=$ARCH "$GAME".c
+gcc exotique.o "$GAME".o -lasan -lSDL2 -o "$GAME" -fsanitize=address
