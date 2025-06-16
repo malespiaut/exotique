@@ -315,7 +315,6 @@ enum fps_e
 };
 typedef enum fps_e fps_t;
 
-
 static f64
 step_time_init(int flags)
 {
@@ -333,7 +332,6 @@ step_time_init(int flags)
   }
   return 1.0 / 60.0;
 }
-
 
 void
 step(ExotiqueInterface* ei, f64* dt)
@@ -427,8 +425,8 @@ image_draw(Context* ctx, Image* img, i32 x, i32 y, Rectangle src)
   {
     return;
   }
-  
- Rectangle dst = {0};
+
+  Rectangle dst = {0};
 
   /* do scaled render */
   int cx1 = ctx->clip.x;
@@ -438,7 +436,7 @@ image_draw(Context* ctx, Image* img, i32 x, i32 y, Rectangle src)
   int stepx = (src.w << 10) / dst.w;
   int stepy = (src.h << 10) / dst.h;
   int sy = src.y << 10;
-  
+
   int dy = 0;
   int ey = 0;
   int blend_fn = 0;
@@ -504,8 +502,6 @@ image_draw(Context* ctx, Image* img, i32 x, i32 y, Rectangle src)
   }
 }
 
-
-
 /* XXX: Exotique core functions */
 
 void
@@ -535,8 +531,8 @@ game_draw(ExotiqueInterface* ei)
 
   i32 col;
   i32 row;
-    i32 frame = ((i32)g_entity.frame) % 4;
-    Rectangle r;
+  i32 frame = ((i32)g_entity.frame) % 4;
+  Rectangle r;
 
   memzero(ei->screen, kScreenPixels);
 
@@ -550,19 +546,19 @@ game_draw(ExotiqueInterface* ei)
   }
 
   /* get animation frame and draw entity */
-  
-    if (my_fabsf((f32)g_entity.x - (f32)ei->mouse.x) < 7.0f && my_fabsf((f32)g_entity.y - (f32)ei->mouse.y) < 7.0f)
-    {
-      frame += 8;
-    }
-    else if (ei->mouse.x | ei->mouse.y)
-    {
-      frame += 4;
-    }
-     r.x = frame*9;
-     r.y = 0;
-     r.w = 9;
-     r.h = 19;
+
+  if (my_fabsf((f32)g_entity.x - (f32)ei->mouse.x) < 7.0f && my_fabsf((f32)g_entity.y - (f32)ei->mouse.y) < 7.0f)
+  {
+    frame += 8;
+  }
+  else if (ei->mouse.x | ei->mouse.y)
+  {
+    frame += 4;
+  }
+  r.x = frame * 9;
+  r.y = 0;
+  r.w = 9;
+  r.h = 19;
   image_draw(g_context, sprite, e.x - 4, e.y - 17, r);
 
   /* Draw cursor */

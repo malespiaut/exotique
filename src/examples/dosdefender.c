@@ -95,7 +95,7 @@ struct ship
   u8 color_a;
   u8 color_b;
   i8 is_player; /* bool */
-  union 
+  union
   {
     i32 target_ship;
     struct

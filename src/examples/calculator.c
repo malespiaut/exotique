@@ -32,7 +32,6 @@ memzero(u8* dest, u64 len)
   }
 }
 
-
 static void
 pixel_draw(u8* screen, i32 x, i32 y, u8 color)
 {
@@ -42,7 +41,6 @@ pixel_draw(u8* screen, i32 x, i32 y, u8 color)
     screen[position] = color;
   }
 }
-
 
 void
 bit_draw(ExotiqueInterface* ei, u8* sprite, i32 x, i32 y, i32 width, i32 height, u8 color)
@@ -154,24 +152,21 @@ vline_draw(u8* screen, i32 y1, i32 y2, i32 x, u8 color)
   }
 }
 
-
-
 /* XXX: UI draw */
-
 
 static void
 button_draw(u8* screen, i32 x, i32 y, u8 color)
 {
-  hline_draw(screen, x+2, x+12, y, color);
-  hline_draw(screen, x+2, x+12, y+14, color);
- 
-  vline_draw(screen, y+2, y+12, x, color);
-  vline_draw(screen, y+2, y+12, x+14, color);
+  hline_draw(screen, x + 2, x + 12, y, color);
+  hline_draw(screen, x + 2, x + 12, y + 14, color);
 
-  pixel_draw(screen, x+1, y+1, color); /* top left corner */
-pixel_draw(screen, x+13, y+1, color); /* top right corner */
-pixel_draw(screen, x+1, y+13, color); /* bottom left corner */
-pixel_draw(screen, x+13, y+13, color); /* bottom right corner */
+  vline_draw(screen, y + 2, y + 12, x, color);
+  vline_draw(screen, y + 2, y + 12, x + 14, color);
+
+  pixel_draw(screen, x + 1, y + 1, color);   /* top left corner */
+  pixel_draw(screen, x + 13, y + 1, color);  /* top right corner */
+  pixel_draw(screen, x + 1, y + 13, color);  /* bottom left corner */
+  pixel_draw(screen, x + 13, y + 13, color); /* bottom right corner */
 }
 
 static void
@@ -206,7 +201,6 @@ ui_draw(u8* screen)
   button_draw(screen, 56, 184, eColorRed);
   button_draw(screen, 72, 184, eColorRed);
   button_draw(screen, 88, 184, eColorRed);
-
 }
 
 /* XXX: Exotique functions */

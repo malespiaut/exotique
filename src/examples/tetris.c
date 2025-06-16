@@ -15,7 +15,7 @@ const i32 kScreenHeight = 200;
 #define KPreviewBoxX (10 + (kBlockSize * bBoardWidth) + 10 + kBlockSizeHalf)
 
 char g_shapes[] =
-/* rotation 0 */
+  /* rotation 0 */
   "...."
   ".OO."
   ".O.."
@@ -51,7 +51,7 @@ char g_shapes[] =
   ".O.."
   ".O.."
 
-/* rotation 1 */
+  /* rotation 1 */
   "...."
   ".O.."
   ".OOO"
@@ -87,7 +87,7 @@ char g_shapes[] =
   "OOOO"
   "...."
 
-/* rotation 2 */
+  /* rotation 2 */
   "...."
   "..O."
   "..O."
@@ -123,7 +123,7 @@ char g_shapes[] =
   ".O.."
   ".O.."
 
-/* rotation 3 */
+  /* rotation 3 */
   "...."
   ".OOO"
   "...O"
@@ -179,44 +179,45 @@ char g_shapes[][41] =
   ".... .... .... .... .... .... .O.. .... ";
 */
 
+/* clang-format off */
 i32 g_shapes_center[] = {
   /* helps center shapes in preview box */
-  0,   0,  0,  0,
-  0,   0,  0,  1,
-  0,   0,  0,  0,
-  1,  -1,  1,  1,
+  0,  0,  0,  0,
+  0,  0,  0,  1,
+  0,  0,  0,  0,
+  1, -1,  1,  1,
 };
 
 u8 g_shapes_colors[] = {
-    0,   0,   0, /* unused */
+  0, 0, 0, /* unused */
   242, 245, 237, /* J-piece */
-  255, 194,   0, /* L-piece */
-   15, 127, 127, /* square */
-  255,  91,   0, /* Z */
-  184,   0,  40, /* S */
-   74, 192, 242, /* T */
-  132,   0,  46, /* line-piece */
+  255, 194, 0, /* L-piece */
+  15, 127, 127, /* square */
+  255, 91, 0, /* Z */
+  184, 0, 40, /* S */
+  74, 192, 242, /* T */
+  132, 0, 46, /* line-piece */
   255, 255, 255, /* shine color */
 };
-
+/* clang-format on */
 
 typedef struct Tetris Tetris;
 struct Tetris
 {
-u8 board[kBoardHeight][kBoardWidth];
-i32 killy_lines[kBoardHeight];
-i32 falling_x;
-i32 falling_y;
-i32 falling_shape;
-i32 falling_rot;
-i32 next_shape;
-i32 lines;
-i32 score;
-i32 best;
-i32 idle_time;
-i32 shine_time;
-i32 dead_time;
-i32 is_falling_shape;
+  u8 board[kBoardHeight][kBoardWidth];
+  i32 killy_lines[kBoardHeight];
+  i32 falling_x;
+  i32 falling_y;
+  i32 falling_shape;
+  i32 falling_rot;
+  i32 next_shape;
+  i32 lines;
+  i32 score;
+  i32 best;
+  i32 idle_time;
+  i32 shine_time;
+  i32 dead_time;
+  i32 is_falling_shape;
 };
 
 Tetris g_tetris = {0};
@@ -564,10 +565,10 @@ move(i32 dx, i32 dy)
 static i32 /* l0ve u bb */
 is_solid_part(int shape, int rot, int i, int j)
 {
-/*  int base = shape * 5 + rot * 5 * 8 * 4*/
-/*  return shapes[base + j * 5 * 8 + i] == 'O'; */
-  int base = (shape + rot * 7) * 16;  /* 16 chars per shape (4x4 grid) */
-  return shapes[base + j * 4 + i] == 'O';  /* 4 chars per row */
+  /*  int base = shape * 5 + rot * 5 * 8 * 4*/
+  /*  return shapes[base + j * 5 * 8 + i] == 'O'; */
+  int base = (shape + rot * 7) * 16;      /* 16 chars per shape (4x4 grid) */
+  return shapes[base + j * 4 + i] == 'O'; /* 4 chars per row */
 }
 
 /* check if the falling piece would collide at a certain position and rotation */
@@ -660,9 +661,6 @@ shine_line(int y)
     board[y][i] = 8; /* shiny! */
   }
 }
-
-
-
 
 /* XXX: Exotique core functions */
 

@@ -97,11 +97,10 @@ struct Context
   HWND hwnd;
   HDC hdc;
   */
- u32 speed;
+  u32 speed;
 };
 
 Context g_context = {0};
-
 
 /* XXX: Input functions */
 
@@ -150,7 +149,6 @@ step(ExotiqueInterface* ei, f64* dt)
     *dt = g_context.prev_time - prev;
   }
 }
-
 
 /* XXX: Drawing functions */
 

@@ -5,13 +5,12 @@ benedicthenshaw.com
 cc render.c -lm -lSDL2
 */
 
-#include <stdint.h>
+#include <SDL2/SDL.h>
+#include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include <SDL2/SDL.h>
-
 
 int vert_count = 190;
 int face_count = 282;
