@@ -29,7 +29,10 @@ enum game_constants
   eBrickColumns = 18,
   eBrickRows = 6,
   eBricks = 108,
-  eTimeStop = 2000
+  eTimeStop = 2000,
+  eBoundaryLeft = 8,
+  eBoundaryRight = 152,
+  eBoundaryTop = 16
 };
 
 enum color_e
@@ -107,11 +110,11 @@ rectangle_fill_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, color_t color)
   }
 
   {
-    i32 y;
-    for (y = y1; y < y2; ++y)
+    i32 y = y1;
+    for (; y < y2; ++y)
     {
-      i32 x;
-      for (x = x1; x < x2; ++x)
+      i32 x = x1;
+      for (; x < x2; ++x)
       {
         if (IN_BOUNDS(x, y))
         {
@@ -132,21 +135,21 @@ rectangles_collide(i32 x1, i32 y1, i32 w1, i32 h1, i32 x2, i32 y2, i32 w2, i32 h
 }
 
 static void
-ball_handle_wall_collision(void)
+ball_collision_walls(void)
 {
-  if (g_game.ball.position.xy.x + eBallWidth > kScreenWidth)
+  if (g_game.ball.position.xy.x + eBallWidth > eBoundaryRight)
   {
     g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
     g_game.ball.position.xy.x += g_game.ball.slope.xy.x;
   }
 
-  if (g_game.ball.position.xy.x < 0)
+  if (g_game.ball.position.xy.x < eBoundaryLeft)
   {
     g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
     g_game.ball.position.xy.x += g_game.ball.slope.xy.x;
   }
 
-  if (g_game.ball.position.xy.y < 0)
+  if (g_game.ball.position.xy.y < eBoundaryTop)
   {
     g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
     g_game.ball.position.xy.y += g_game.ball.slope.xy.y;
@@ -160,7 +163,7 @@ ball_handle_wall_collision(void)
 }
 
 static void
-ball_handle_paddle_collision(void)
+ball_collision_paddle(void)
 {
   i32 ball_bottom = g_game.ball.position.xy.y + eBallHeight;
   i32 paddle_left = g_game.player.position.xy.x;
@@ -175,13 +178,12 @@ ball_handle_paddle_collision(void)
 }
 
 static void
-ball_handle_brick_collisions(void)
+ball_collision_bricks(void)
 {
-  i32 i;
-
-  for (i = 0; i < eBricks; ++i)
+  i32 i = 0;
+  for (; i < eBricks; ++i)
   {
-    if (g_game.brick[i].hit == 0)
+    if (!g_game.brick[i].hit)
     {
       i32 next_x = g_game.ball.position.xy.x + g_game.ball.slope.xy.x;
       i32 next_y = g_game.ball.position.xy.y + g_game.ball.slope.xy.y;
@@ -205,7 +207,7 @@ ball_handle_brick_collisions(void)
 }
 
 static void
-ball_reset_position(void)
+ball_reset(void)
 {
   g_game.ball.position.xy.x = kScreenWidth / 2;
   g_game.ball.position.xy.y = kScreenHeight / 2;
@@ -213,7 +215,7 @@ ball_reset_position(void)
 }
 
 static void
-ball_update_position(void)
+ball_move(void)
 {
   if (!g_game.shoot)
   {
@@ -222,101 +224,26 @@ ball_update_position(void)
   }
   else
   {
-    ball_reset_position();
+    ball_reset();
   }
 }
 
 static void
-ball_move(void)
+ball_update(void)
 {
-  ball_handle_wall_collision();
-  ball_handle_paddle_collision();
-  ball_handle_brick_collisions();
-  ball_update_position();
-}
-
-/* Exotique engine interface functions */
-
-static void
-setup_color_palette(ExotiqueInterface* ei)
-{
-  memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));
-
-  ei->palette[eColorTransparent] = 0x00000000;
-  ei->palette[eColorWhite] = 0xfdfdf8ff;
-  ei->palette[eColorRed] = 0xd32734ff;
-  ei->palette[eColorOrange] = 0xda7d22ff;
-  ei->palette[eColorYellow] = 0xe6da29ff;
-  ei->palette[eColorGreen] = 0x28c641ff;
-  ei->palette[eColorBlue] = 0x2d93ddff;
-  ei->palette[eColorPurple] = 0x7b53adff;
-  ei->palette[eColorBlack] = 0x1b1c33ff;
-}
-
-static void
-initialize_bricks(void)
-{
-  i32 i, j, n = 0, color = 0;
-
-  for (i = 0; i < eBrickRows; ++i)
-  {
-    for (j = 0; j < eBrickColumns; ++j)
-    {
-      g_game.brick[n].position.xy.x = j * eBrickWidth;
-      g_game.brick[n].position.xy.y = i * eBrickHeight;
-      g_game.brick[n].size.wh.width = eBrickWidth;
-      g_game.brick[n].size.wh.height = eBrickHeight;
-      g_game.brick[n].color = (color_t)((color % 6) + 2);
-      g_game.brick[n].hit = 0;
-      ++n;
-    }
-    ++color;
-  }
-}
-
-static void
-reset_game_state(void)
-{
-  g_game.shoot = 1;
-  g_game.ball.position.xy.x = kScreenWidth / 2;
-  g_game.ball.position.xy.y = kScreenHeight / 2;
-  g_game.player.position.xy.x = kScreenWidth / 2 - ePaddleWidth / 2;
-  g_game.player.position.xy.y = kScreenHeight - 6;
-  g_game.ball.speed.xy.x = 1;
-  g_game.ball.speed.xy.y = 1;
-  g_game.ball.slope.xy.x = -1;
-  g_game.ball.slope.xy.y = -1;
-}
-
-void
-game_load(ExotiqueInterface* ei)
-{
-  setup_color_palette(ei);
-
-  g_game.difficulty = 1;
-  g_game.player.lives = 3;
-  g_game.player.score = 0;
-  g_game.bricks = eBrickColumns * eBrickRows;
-
-  initialize_bricks();
-  reset_game_state();
-}
-
-void
-game_update(ExotiqueInterface* ei)
-{
+  ball_collision_walls();
+  ball_collision_paddle();
+  ball_collision_bricks();
   ball_move();
-  g_game.player.position.xy.x = ei->mouse.xy.x;
 }
 
 static void
-draw_bricks(u8* screen)
+bricks_draw(u8* screen)
 {
-  i32 i;
-
-  for (i = 0; i < eBricks; ++i)
+  i32 i = 0;
+  for (; i < eBricks; ++i)
   {
-    if (g_game.brick[i].hit == 0)
+    if (!g_game.brick[i].hit)
     {
       rectangle_fill_draw(screen,
                           g_game.brick[i].position.xy.x,
@@ -329,25 +256,121 @@ draw_bricks(u8* screen)
 }
 
 static void
-draw_paddle(u8* screen)
+paddle_draw(u8* screen)
 {
   rectangle_fill_draw(screen,
                       g_game.player.position.xy.x,
                       g_game.player.position.xy.y,
                       g_game.player.position.xy.x + ePaddleWidth,
                       g_game.player.position.xy.y + ePaddleHeight,
-                      eColorWhite);
+                      eColorRed);
 }
 
 static void
-draw_ball(u8* screen)
+walls_draw(u8* screen)
+{
+  /* Right wall */
+  rectangle_fill_draw(screen, 0, 8, 8, 98, eColorWhite);
+  /* Left wall */
+  rectangle_fill_draw(screen, 152, 8, 160, 98, eColorWhite);
+  /* Top wall */
+  rectangle_fill_draw(screen, 8, 8, 152, 16, eColorWhite);
+}
+
+static void
+ball_draw(u8* screen)
 {
   rectangle_fill_draw(screen,
                       g_game.ball.position.xy.x,
                       g_game.ball.position.xy.y,
                       g_game.ball.position.xy.x + eBallWidth,
                       g_game.ball.position.xy.y + eBallHeight,
-                      eColorWhite);
+                      eColorRed);
+}
+
+/* Exotique interface functions */
+
+void
+game_load(ExotiqueInterface* ei)
+{
+  /* Color palette */
+  memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));
+
+  ei->palette[eColorTransparent] = 0x00000000;
+  ei->palette[eColorWhite] = 0xfdfdf8ff;
+  ei->palette[eColorRed] = 0xd32734ff;
+  ei->palette[eColorOrange] = 0xda7d22ff;
+  ei->palette[eColorYellow] = 0xe6da29ff;
+  ei->palette[eColorGreen] = 0x28c641ff;
+  ei->palette[eColorBlue] = 0x2d93ddff;
+  ei->palette[eColorPurple] = 0x7b53adff;
+  ei->palette[eColorBlack] = 0x1b1c33ff;
+
+  /* Ball init */
+  g_game.ball.position.xy.x = kScreenWidth / 2;
+  g_game.ball.position.xy.y = kScreenHeight / 2;
+  g_game.ball.slope.xy.x = -1;
+  g_game.ball.slope.xy.y = -1;
+  g_game.ball.speed.xy.x = 1;
+  g_game.ball.speed.xy.y = 1;
+
+  /* Player init */
+  g_game.player.lives = 3;
+  g_game.player.position.xy.x = kScreenWidth / 2 - ePaddleWidth / 2;
+  g_game.player.position.xy.y = kScreenHeight - 6;
+  g_game.player.score = 0;
+
+  /* Game init */
+  g_game.difficulty = 1;
+  g_game.shoot = 1;
+
+  /* Bricks init */
+  g_game.bricks = eBrickColumns * eBrickRows;
+  /* Bricks block is set at position (8, 28) */
+  {
+    i32 n = 0;
+    i32 color = 0;
+
+    i32 i = 0;
+    for (; i < eBrickRows; ++i)
+    {
+      i32 j = 0;
+      for (; j < eBrickColumns; ++j)
+      {
+        g_game.brick[n].position.xy.x = 8 + (j * eBrickWidth);
+        g_game.brick[n].position.xy.y = 28 + (i * eBrickHeight);
+        g_game.brick[n].size.wh.width = eBrickWidth;
+        g_game.brick[n].size.wh.height = eBrickHeight;
+        g_game.brick[n].color = (color_t)((color % 6) + 2);
+        g_game.brick[n].hit = 0;
+        ++n;
+      }
+      ++color;
+    }
+  }
+}
+
+static void
+paddle_update(i32 mouse_x)
+{
+  g_game.player.position.xy.x = mouse_x;
+
+  /* Keeping the paddle within the boundaries of the game area */
+  if (g_game.player.position.xy.x < 8)
+  {
+    g_game.player.position.xy.x = 8;
+  }
+  if (g_game.player.position.xy.x > 136)
+  {
+    g_game.player.position.xy.x = 136;
+  }
+}
+
+void
+game_update(ExotiqueInterface* ei)
+{
+  ball_update();
+  paddle_update(ei->mouse.xy.x);
 }
 
 void
@@ -355,7 +378,8 @@ game_draw(ExotiqueInterface* ei)
 {
   memzero(ei->screen, (u64)kScreenPixels);
 
-  draw_bricks(ei->screen);
-  draw_paddle(ei->screen);
-  draw_ball(ei->screen);
+  walls_draw(ei->screen);
+  bricks_draw(ei->screen);
+  paddle_draw(ei->screen);
+  ball_draw(ei->screen);
 }
