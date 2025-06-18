@@ -67,14 +67,11 @@ struct ExotiqueInterface
 {
   u8* screen;   /* [kScreenPixels] */
   u32* palette; /* [255] */
-  i16* sound;   /* [kSoundSamples] */
 
   vec2i_t mouse;
   PlayerInput player[4];
 
   u64 ticks;
-  u32 sound_sample_rate;
-  u32 sound_samples;
 };
 
 void game_load(ExotiqueInterface* ei);
