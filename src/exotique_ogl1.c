@@ -13,9 +13,6 @@
 #include <GL/glut.h>
 #pragma GCC diagnostic pop
 
-#define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
-
 /* XXX: Screen constants */
 
 extern const int kScreenWidth;
@@ -428,7 +425,7 @@ glut_close_callback(void)
   g_game_manager.exit = true;
 } */
 
-/* XXX: OpenGL and audio setup functions */
+/* XXX: OpenGL setup functions */
 
 static void
 opengl_load(GameManager* gm)
@@ -504,7 +501,6 @@ main(const int argc, const char* argv[])
   exotique_load(&g_game_manager, &g_exotique_interface);
   game_load(&g_exotique_interface);
   opengl_load(&g_game_manager);
-  audio_load(&g_game_manager);
 
   /* Main loop */
   glutMainLoop();
