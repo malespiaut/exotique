@@ -86,7 +86,7 @@ struct game_s
   i32 shoot;
 };
 
-game_t g_game = {0};
+static game_t g_game = {0};
 
 /* Drawing functions */
 
@@ -288,6 +288,71 @@ ball_draw(u8* screen)
                       eColorRed);
 }
 
+static void
+sprite_draw(u8* screen, i32 x, i32 y, i32 n, color_t color)
+{
+  static const u64 font[10] = {
+    0xffff0ff0ff0ffff0, /* 0 */
+    0x00f00f00f00f00f0, /* 1 */
+    0xfff00fffff00fff0, /* 2 */
+    0xfff00ffff00ffff0, /* 3 */
+    0xf0ff0ffff00f00f0, /* 4 */
+    0xffff00fff00ffff0, /* 5 */
+    0xffff00ffff0ffff0, /* 6 */
+    0xfff00f00f00f00f0, /* 7 */
+    0xffff0fffff0ffff0, /* 8 */
+    0xffff0ffff00ffff0  /* 9 */
+  };
+
+  if (n < 0 || n > 9)
+  {
+    return;
+  }
+
+  {
+    i32 row = 0;
+    i32 pix = 0;
+    u64 sprite = font[n];
+    for (; pix < 64; ++pix)
+    {
+      if (sprite & (0x8000000000000000 >> pix))
+      {
+        i32 px = x + (pix % 12);
+        i32 py = y + row;
+        if (IN_BOUNDS(px, py))
+        {
+          screen[py * kScreenWidth + px] = (u8)color;
+        }
+      }
+      if (!((pix + 1) % 12))
+      {
+        ++row;
+      }
+    }
+  }
+}
+
+static void
+numbers_draw(u8* screen, i32 x, i32 y, i32 number, i32 digits, color_t color)
+{
+  i32 offset = 0;
+  i32 i = 0;
+  for (; i < digits; ++i)
+  {
+    i32 num = number;
+    i32 div = 1;
+    i32 n = i + 1;
+    for (; n < digits; ++n)
+    {
+      div *= 10;
+    }
+    num /= div;
+    num %= 10;
+    offset += 16;
+    sprite_draw(screen, x + offset, y, num, color);
+  }
+}
+
 /* Exotique interface functions */
 
 void
@@ -382,4 +447,6 @@ game_draw(ExotiqueInterface* ei)
   bricks_draw(ei->screen);
   paddle_draw(ei->screen);
   ball_draw(ei->screen);
+
+  numbers_draw(ei->screen, 36, 2, g_game.player.score, 3, eColorWhite);
 }
