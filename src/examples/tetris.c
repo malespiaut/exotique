@@ -2,19 +2,58 @@
 
 /* XXX: Screen size */
 
-const i32 kScreenWidth = 320;
-const i32 kScreenHeight = 200;
+const i32 kScreenWidth = 480;
+const i32 kScreenHeight = 620;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
-/* XXX: Game data */
+/* Memory utilities */
 
-#define kBoardWidth 10
-#define kBoardHeight 20
-#define kBlockSize 30
-#define kBlockSizeHalf (kBlockSize / 2)
-#define KPreviewBoxX (10 + (kBlockSize * bBoardWidth) + 10 + kBlockSizeHalf)
+static void
+memzero(u8* dest, u64 len)
+{
+  while (len-- > 0)
+  {
+    *dest++ = 0;
+  }
+}
 
-char g_shapes[] =
+enum color_e
+{
+  eColorTransparent,
+  eColorBlue,
+  eColorOrange,
+  eColorYellow,
+  eColorRed,
+  eColorGreen,
+  eColorPurple,
+  eColorCyan,
+  eColorWhite
+};
+typedef enum color_e color_t;
+
+enum shape_e
+{
+  eShapeJ,
+  eShapeL,
+  eShapeSquare,
+  eShapeZ,
+  eShapeS,
+  eShapeT,
+  eShapeLine,
+  eShapeFlash
+};
+typedef enum shape_e shape_t;
+
+#define BWIDTH 10 /* board width, height */
+#define BHEIGHT 20
+#define BS 30        /* size of one block */
+#define BS2 (BS / 2) /* size of half a block */
+#define PREVIEW_BOX_X (10 + BS * BWIDTH + 10 + BS2)
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define IN_BOUNDS(x, y) ((x) >= 0 && (x) < kScreenWidth && (y) >= 0 && (y) < kScreenHeight)
+
+char shapes[] =
   /* rotation 0 */
   "...."
   ".OO."
@@ -159,79 +198,73 @@ char g_shapes[] =
   "OOOO"
   "....";
 
-/*
-char g_shapes[][41] =
-  ".... .... .... .... .... .... .... .O.. "
-  ".... .OO. .OO. .OO. ..O. .O.. .... .O.. "
-  ".... .O.. ..O. .OO. .OO. .OO. OOO. .O.. "
-  ".... .O.. ..O. .... .O.. ..O. .O.. .O.. "
-  ".... .... .... .... .... .... .... .... "
-  ".... .O.. ..O. .OO. OO.. .OO. .O.. .... "
-  ".... .OOO OOO. .OO. .OO. OO.. .OO. OOOO "
-  ".... .... .... .... .... .... .O.. .... "
-  ".... .... .... .... .... .... .... .O.. "
-  ".... ..O. .O.. .OO. ..O. .O.. .O.. .O.. "
-  ".... ..O. .O.. .OO. .OO. .OO. OOO. .O.. "
-  ".... .OO. .OO. .... .O.. ..O. .... .O.. "
-  ".... .... .... .... .... .... .... .... "
-  ".... .OOO OOO. .OO. OO.. .OO. .O.. .... "
-  ".... ...O O... .OO. .OO. OO.. OO.. OOOO "
-  ".... .... .... .... .... .... .O.. .... ";
-*/
-
-/* clang-format off */
-i32 g_shapes_center[] = {
+i32 center[] = {
   /* helps center shapes in preview box */
-  0,  0,  0,  0,
-  0,  0,  0,  1,
-  0,  0,  0,  0,
-  1, -1,  1,  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  1,
+  -1,
+  1,
+  1,
 };
 
-u8 g_shapes_colors[] = {
-  0, 0, 0, /* unused */
-  242, 245, 237, /* J-piece */
-  255, 194, 0, /* L-piece */
-  15, 127, 127, /* square */
-  255, 91, 0, /* Z */
-  184, 0, 40, /* S */
-  74, 192, 242, /* T */
-  132, 0, 46, /* line-piece */
-  255, 255, 255, /* shine color */
-};
-/* clang-format on */
-
-typedef struct Tetris Tetris;
-struct Tetris
-{
-  u8 board[kBoardHeight][kBoardWidth];
-  i32 killy_lines[kBoardHeight];
-  i32 falling_x;
-  i32 falling_y;
-  i32 falling_shape;
-  i32 falling_rot;
-  i32 next_shape;
-  i32 lines;
-  i32 score;
-  i32 best;
-  i32 idle_time;
-  i32 shine_time;
-  i32 dead_time;
-  i32 is_falling_shape;
+u8 colors[27] = {
+  0,
+  0,
+  0, /* unused */
+  96,
+  96,
+  248, /* J-piece 6060f8 */
+  248,
+  128,
+  32, /* L-piece f88020 */
+  248,
+  216,
+  0, /* square f8d800 */
+  232,
+  32,
+  32, /* Z e82020 */
+  0,
+  216,
+  0, /* S 00d800 */
+  200,
+  64,
+  200, /* T c840c8 */
+  32,
+  200,
+  248, /* line-piece 20c8f8 */
+  255,
+  255,
+  255, /* shine color */
 };
 
-Tetris g_tetris = {0};
+u8 board[BHEIGHT][BWIDTH];
+i32 killy_lines[BHEIGHT];
 
-/* XXX: System functions */
+i32 falling_x;
+i32 falling_y;
+shape_t falling_shape;
+i32 is_falling_shape;
+i32 falling_rot;
+shape_t next_shape;
+i32 lines;
+i32 score;
+i32 best;
+i32 idle_time;
+i32 shine_time;
+i32 dead_time;
 
-static void
-memzero(u8* dest, u64 len)
-{
-  while (len-- > 0)
-  {
-    *dest++ = 0;
-  }
-}
+/* SDL_Event event;
+SDL_Renderer* renderer;
+TTF_Font* font; */
 
 /* XXX: 32-bits PRNG - xoshiro128++ */
 
@@ -263,324 +296,29 @@ next(void)
   return result;
 }
 
-static /*inline*/ i32
-abs(i32 x)
-{
-  return x < 0 ? -x : x;
-}
-
-/* XXX: Shape functions */
-
-/* Helper macro to ensure that pixel is within screen bounds */
-#define in_bound(x, y) ((x) >= 0 && (x) < kScreenWidth && (y) >= 0 && (y) < kScreenHeight)
-
-/* Function to draw a pixel on the screen if it is within bounds */
-static void
-pixel_draw(u8* screen, i32 x, i32 y, u8 color)
-{
-  if (in_bound(x, y))
-  {
-    screen[y * kScreenWidth + x] = color;
-  }
-}
-
-/* Function to draw a circle using Bresenham's algorithm */
-static void
-circle_line_draw(u8* screen, i32 x_center, i32 y_center, i32 radius, u8 color)
-{
-  i32 x = 0;          /* x-coordinate offset from the center */
-  i32 y = radius;     /* y-coordinate starts at the radius */
-  i32 d = 1 - radius; /* Decision variable used to determine the next pixel to plot */
-
-  /* Plot the initial points at 8 symmetric positions */
-  pixel_draw(screen, x_center + x, y_center + y, color);
-  pixel_draw(screen, x_center + x, y_center - y, color);
-  pixel_draw(screen, x_center + y, y_center + x, color);
-  pixel_draw(screen, x_center - y, y_center + x, color);
-  pixel_draw(screen, x_center - x, y_center - y, color);
-  pixel_draw(screen, x_center - x, y_center + y, color);
-  pixel_draw(screen, x_center - y, y_center - x, color);
-  pixel_draw(screen, x_center + y, y_center - x, color);
-
-  /* Iterate through the circle and calculate points using integer operations */
-  while (x < y)
-  {
-    ++x;
-
-    if (d < 0)
-    {
-      /* Select the pixel straight across (midpoint is inside the circle) */
-      d += 2 * x + 1;
-    }
-    else
-    {
-      /* Select the diagonal pixel (midpoint is outside the circle) */
-      --y;
-      d += 2 * (x - y) + 1;
-    }
-
-    /* Plot the 8 symmetrical points for each calculated (x, y) pair */
-    pixel_draw(screen, x_center + x, y_center + y, color);
-    pixel_draw(screen, x_center - x, y_center + y, color);
-    pixel_draw(screen, x_center + x, y_center - y, color);
-    pixel_draw(screen, x_center - x, y_center - y, color);
-
-    pixel_draw(screen, x_center + y, y_center + x, color);
-    pixel_draw(screen, x_center - y, y_center + x, color);
-    pixel_draw(screen, x_center + y, y_center - x, color);
-    pixel_draw(screen, x_center - y, y_center - x, color);
-  }
-}
-
-/* Draw a horizontal line on the screen from x1 to x2 at y */
-static void
-hline_draw(u8* screen, i32 x1, i32 x2, i32 y, u8 color)
-{
-  i32 i = 0;
-  i32 width = 0;
-  /* Ensure y is within screen height bounds */
-  if (y < 0 || y >= kScreenHeight)
-  {
-    return; /* Do nothing if y is out of bounds */
-  }
-
-  /* Ensure x1 is less than or equal to x2 */
-  if (x1 > x2)
-  {
-    i32 temp = x1;
-    x1 = x2;
-    x2 = temp; /* Swap x1 and x2 if necessary */
-  }
-
-  /* Clamp x1 and x2 within screen width bounds */
-  if (x1 < 0)
-  {
-    x1 = 0;
-  }
-  if (x2 >= kScreenWidth)
-  {
-    x2 = kScreenWidth - 1;
-  }
-
-  /* Calculate the width of the line */
-  width = x2 - x1 + 1;
-
-  /* Draw the horizontal line if width is valid */
-  if (width > 0)
-  {
-    u8* pixel = &screen[y * kScreenWidth + x1]; /* Get starting pixel address */
-    for (; i < width; ++i)
-    {
-      pixel[i] = color; /* Set each pixel to the specified color */
-    }
-  }
-}
-
-/* Draw a vertical line on the screen from y1 to y2 at x */
-static void
-vline_draw(u8* screen, i32 y1, i32 y2, i32 x, u8 color)
-{
-  i32 i = 0;
-  i32 height = 0;
-  /* Ensure x is within screen width bounds */
-  if (x < 0 || x >= kScreenWidth)
-  {
-    return; /* Do nothing if x is out of bounds */
-  }
-
-  /* Ensure y1 is less than or equal to y2 */
-  if (y1 > y2)
-  {
-    i32 temp = y1;
-    y1 = y2;
-    y2 = temp; /* Swap y1 and y2 if necessary */
-  }
-
-  /* Clamp y1 and y2 within screen height bounds */
-  if (y1 < 0)
-  {
-    y1 = 0;
-  }
-  if (y2 >= kScreenHeight)
-  {
-    y2 = kScreenHeight - 1;
-  }
-
-  /* Calculate the height of the line */
-  height = y2 - y1 + 1;
-
-  /* Draw the vertical line if height is valid */
-  if (height > 0)
-  {
-    u8* pixel = &screen[y1 * kScreenWidth + x]; /* Get starting pixel address */
-    for (; i < height; ++i)
-    {
-      pixel[i * kScreenWidth] = color; /* Set each pixel to the specified color */
-    }
-  }
-}
-
-static void
-line_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, u8 color)
-{
-  if (y1 == y2)
-  {
-    hline_draw(screen, x1, x2, y1, color);
-  }
-  else if (x1 == x2)
-  {
-    vline_draw(screen, y1, y2, x1, color);
-  }
-  else
-  {
-    i32 dx = abs(x2 - x1);
-    i32 sx = x1 < x2 ? 1 : -1;
-    i32 dy = -abs(y2 - y1);
-    i32 sy = y1 < y2 ? 1 : -1;
-    i32 error = dx + dy;
-
-    for (;;)
-    {
-      i32 e2 = 0;
-      /*ei->screen[kScreenWidth * y1 + x1] = color;*/
-      pixel_draw(screen, x1, y1, color);
-      if ((x1 == x2) && (y1 == y2))
-      {
-        break;
-      }
-
-      e2 = 2 * error;
-      if (e2 >= dy)
-      {
-        error += dy;
-        x1 += sx;
-      }
-      if (e2 <= dx)
-      {
-        error += dx;
-        y1 += sy;
-      }
-    }
-  }
-}
-
-static void
-triangle_line_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, i32 x3, i32 y3, u8 color)
-{
-  line_draw(screen, x1, y1, x2, y2, color);
-  line_draw(screen, x2, y2, x3, y3, color);
-  line_draw(screen, x3, y3, x1, y1, color);
-}
-
-static void
-rectangle_line_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, u8 color)
-{
-  line_draw(screen, x1, y1, x2, y1, color);
-  line_draw(screen, x1, y1, x1, y2, color);
-  line_draw(screen, x2, y2, x2, y1, color);
-  line_draw(screen, x2, y2, x1, y2, color);
-}
-
-/* XXX: Tetris functions */
-
-static void
-piece_new(void)
-{
-  g_tetris.is_falling_shape = 1;
-  g_tetris.falling_shape = g_tetris.next_shape;
-  g_tetris.next_shape = (i32)(next() % 7);
-}
-
-/* remove lines that were marked to be removed by shine_line() */
-static void
-kill_lines(void)
-{
-  i32 y;
-  i32 i;
-  i32 j;
-  i32 new_lines = 0;
-
-  for (y = 0; y < kBoardHeight; y++)
-  {
-    if (!g_tetris.killy_lines[y])
-    {
-      continue;
-    }
-
-    g_tetris.lines++;
-    new_lines++;
-    g_tetris.killy_lines[y] = 0;
-    memzero(g_tetris.board[0], sizeof *g_tetris.board);
-
-    for (j = y; j > 0; j--)
-    {
-      for (i = 0; i < kBoardWidth; i++)
-      {
-        g_tetris.board[j][i] = g_tetris.board[j - 1][i];
-      }
-    }
-  }
-
-  switch (new_lines)
-  {
-    case 1:
-      g_tetris.score += 100;
-      break;
-    case 2:
-      g_tetris.score += 250;
-      break;
-    case 3:
-      g_tetris.score += 500;
-      break;
-    case 4:
-      g_tetris.score += 1000;
-      break;
-    default:
-      break;
-  }
-}
-
-/* move the falling piece left, right, or down */
-static void
-move(i32 dx, i32 dy)
-{
-  if (!collide(g_tetris.falling_x + dx, g_tetris.falling_y + dy, g_tetris.falling_rot))
-  {
-    g_tetris.falling_x += dx;
-    g_tetris.falling_y += dy;
-  }
-  else if (g_tetris.is_falling_shape && dy)
-  {
-    g_tetris.is_falling_shape = 0;
-    bake();
-  }
-
-  if (dy)
-  {
-    g_tetris.idle_time = 0;
-  }
-}
-
 /* check if a sub-part of the falling shape is solid at a particular rotation */
-static i32 /* l0ve u bb */
-is_solid_part(int shape, int rot, int i, int j)
+static i32
+is_solid_part(shape_t shape, i32 rot, i32 i, i32 j)
 {
-  /*  int base = shape * 5 + rot * 5 * 8 * 4*/
+  /*  i32 base = shape * 5 + rot * 5 * 8 * 4; */
   /*  return shapes[base + j * 5 * 8 + i] == 'O'; */
-  int base = (shape + rot * 7) * 16;      /* 16 chars per shape (4x4 grid) */
+  i32 base = ((i32)shape + rot * 7) * 16; /* 16 chars per shape (4x4 grid) */
   return shapes[base + j * 4 + i] == 'O'; /* 4 chars per row */
 }
 
-/* check if the falling piece would collide at a certain position and rotation */
-int
-collide(int x, int y, int rot)
+/* check if the falling piece would collide at a certain position and rotation
+ */
+static i32
+collide(i32 x, i32 y, i32 rot)
 {
-  for (int i = 0; i < 4; i++)
+  i32 i = 0;
+  for (; i < 4; ++i)
   {
-    for (int j = 0; j < 4; j++)
+    i32 j = 0;
+    for (; j < 4; ++j)
     {
-      int world_i = i + x;
-      int world_j = j + y;
+      i32 world_i = i + x;
+      i32 world_j = j + y;
 
       if (!is_solid_part(falling_shape, rot, i, j))
       {
@@ -606,16 +344,31 @@ collide(int x, int y, int rot)
   return 0;
 }
 
+/* make a completed line "shine" and mark it to be removed */
+static void
+shine_line(i32 y)
+{
+  i32 i = 0;
+  shine_time = 50;
+  killy_lines[y] = 1;
+  for (; i < BWIDTH; ++i)
+  {
+    board[y][i] = 8; /* shiny! */
+  }
+}
+
 /* bake the falling piece into the background/board */
-void
+static void
 bake(void)
 {
-  for (int i = 0; i < 4; i++)
+  i32 i = 0;
+  for (; i < 4; ++i)
   {
-    for (int j = 0; j < 4; j++)
+    i32 j = 0;
+    for (; j < 4; ++j)
     {
-      int world_i = i + falling_x;
-      int world_j = j + falling_y;
+      i32 world_i = i + falling_x;
+      i32 world_j = j + falling_y;
 
       if (!is_solid_part(falling_shape, falling_rot, i, j))
       {
@@ -633,167 +386,443 @@ bake(void)
         next_shape = 0;
       }
 
-      board[world_j][world_i] = falling_shape + 1;
+      board[world_j][world_i] = (u8)(falling_shape + 1);
     }
   }
 
   /* check if there are any completed horizontal lines */
-  for (int j = BHEIGHT - 1; j >= 0; j--)
   {
-    for (int i = 0; i < BWIDTH && board[j][i]; i++)
+    i32 j = BHEIGHT - 1;
+    for (; j >= 0; --j)
     {
-      if (i == BWIDTH - 1)
+      i32 k = 0;
+      for (; k < BWIDTH && board[j][k]; ++k)
       {
-        shine_line(j);
+        if (k == BWIDTH - 1)
+        {
+          shine_line(j);
+        }
       }
     }
   }
 }
 
-/* make a completed line "shine" and mark it to be removed */
-void
-shine_line(int y)
+/* move the falling piece left, right, or down */
+static void
+move(i32 dx, i32 dy)
 {
-  shine_time = 50;
-  killy_lines[y] = 1;
-  for (int i = 0; i < BWIDTH; i++)
+  if (!collide(falling_x + dx, falling_y + dy, falling_rot))
   {
-    board[y][i] = 8; /* shiny! */
+    falling_x += dx;
+    falling_y += dy;
+  }
+  else if (is_falling_shape && dy)
+  {
+    is_falling_shape = 0;
+    bake();
+  }
+
+  if (dy)
+  {
+    idle_time = 0;
   }
 }
+
+/* move the falling piece as far down as it will go */
+/*
+static void
+slam(void)
+{
+  for (; !collide(falling_x, falling_y + 1, falling_rot); falling_y++)
+  {
+    idle_time = 0;
+  }
+}
+*/
+
+/* spin the falling piece left or right, if possible */
+/*
+static void
+spin(void)
+{
+  i32 new_rot = (falling_rot + 1) % 4;
+
+  if (!collide(falling_x, falling_y, new_rot))
+  {
+    falling_rot = new_rot;
+  }
+  else if (!collide(falling_x - 1, falling_y, new_rot))
+  {
+    falling_x -= 1;
+    falling_rot = new_rot;
+  }
+}*/
+
+/* handle a key press from the player */
+/*static void
+key_down(void)
+{*/
+/*
+if (is_falling_shape)
+  switch (event.key.keysym.sym)
+  {
+    case SDLK_a:
+    case SDLK_LEFT:
+      move(-1, 0);
+      break;
+    case SDLK_d:
+    case SDLK_RIGHT:
+      move(1, 0);
+      break;
+    case SDLK_w:
+    case SDLK_UP:
+      slam();
+      break;
+    case SDLK_s:
+    case SDLK_DOWN:
+      move(0, 1);
+      break;
+    case SDLK_q:
+    case SDLK_z:
+      spin();
+      break;
+    case SDLK_e:
+    case SDLK_x:
+      spin();
+      break;
+    default:
+      break;
+  }
+  */
+/*}*/
+
+/* randomly pick a new next piece, and put the old on in play */
+static void
+new_piece(void)
+{
+  falling_shape = next_shape;
+  next_shape = next() % 7; /* 7 shapes */
+  is_falling_shape = 1;
+}
+
+/* remove lines that were marked to be removed by shine_line() */
+static void
+kill_lines(void)
+{
+  i32 new_lines = 0;
+  i32 y = 0;
+  for (; y < BHEIGHT; ++y)
+  {
+    if (!killy_lines[y])
+    {
+      continue;
+    }
+
+    ++lines;
+    ++new_lines;
+    killy_lines[y] = 0;
+    /*memset(board[0], 0, sizeof *board);*/
+    memzero(board[0], sizeof(*board));
+
+    {
+      i32 j = y;
+      for (; j > 0; --j)
+      {
+        i32 i = 0;
+        for (; i < BWIDTH; ++i)
+        {
+          board[j][i] = board[j - 1][i];
+        }
+      }
+    }
+  }
+
+  switch (new_lines)
+  {
+    case 1:
+      score += 100;
+      break;
+    case 2:
+      score += 250;
+      break;
+    case 3:
+      score += 500;
+      break;
+    case 4:
+      score += 1000;
+      break;
+    default:
+      break;
+  }
+}
+
+/* reset score and pick one extra random piece */
+static void
+new_game(void)
+{
+}
+
+/* set the current draw color to the color assoc. with a shape */
+/*
+static void
+set_color_from_shape(i32 shape, i32 shade)
+{
+  i32 r = MAX(colors[shape * 3 + 0] + shade, 0);
+  i32 g = MAX(colors[shape * 3 + 1] + shade, 0);
+  i32 b = MAX(colors[shape * 3 + 2] + shade, 0);
+  SDL_SetRenderDrawColor(renderer, (Uint8)r, (Uint8)g, (Uint8)b, 255);
+}*/
+
+static void
+rectangle_fill_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, color_t color)
+{
+  if (x1 > x2)
+  {
+    i32 temp = x1;
+    x1 = x2;
+    x2 = temp;
+  }
+
+  if (y1 > y2)
+  {
+    i32 temp = y1;
+    y1 = y2;
+    y2 = temp;
+  }
+
+  {
+    i32 y = y1;
+    for (; y < y2; ++y)
+    {
+      i32 x = x1;
+      for (; x < x2; ++x)
+      {
+        if (IN_BOUNDS(x, y))
+        {
+          screen[y * kScreenWidth + x] = (u8)color;
+        }
+      }
+    }
+  }
+}
+
+/* draw a single square/piece of a shape */
+static void
+draw_square(u8* screen, i32 x, i32 y, shape_t shape)
+{
+  /*
+  set_color_from_shape(shape, -25);
+  SDL_RenderDrawRect(renderer, &(SDL_Rect){x, y, BS, BS});
+  set_color_from_shape(shape, 0);
+  SDL_RenderFillRect(renderer, &(SDL_Rect){1 + x, 1 + y, BS - 2, BS - 2});
+  */
+  rectangle_fill_draw(screen, x, y, x + BS, y + BS, (color_t)shape);
+}
+
+/* render a centered line of text optionally with a %d value in it */
+/*
+static void
+text(const char* fstr, i32 value, i32 x, i32 y)
+{
+  (void)fstr;
+  (void)value;
+  (void)x;
+  (void)y;*/
+/*
+if (!font)
+{
+  return;
+}
+i32 w, h;
+char msg[80];
+snprintf(msg, 80, fstr, value);
+TTF_SizeText(font, msg, &w, &h);
+SDL_Surface* msgsurf = TTF_RenderText_Blended(font, msg, (SDL_Color){80, 90, 85, 255});
+SDL_Texture* msgtex = SDL_CreateTextureFromSurface(renderer, msgsurf);
+SDL_Rect fromrec = {0, 0, msgsurf->w, msgsurf->h};
+SDL_Rect torec = {x, y, msgsurf->w, msgsurf->h};
+SDL_RenderCopy(renderer, msgtex, &fromrec, &torec);
+SDL_DestroyTexture(msgtex);
+SDL_FreeSurface(msgsurf);
+*/
+/*}*/
 
 /* XXX: Exotique core functions */
 
 void
 game_load(ExotiqueInterface* ei)
 {
-  /* Setting up the color palette */
-  memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));
-  ei->palette[0] = 0x00000000;
-  ei->palette[1] = 0x430067ff;
-  ei->palette[2] = 0x94216aff;
-  ei->palette[3] = 0xff004dff;
-  ei->palette[4] = 0xff8426ff;
-  ei->palette[5] = 0xffdd34ff;
-  ei->palette[6] = 0x50e112ff;
-  ei->palette[7] = 0x3fa66fff;
-  ei->palette[8] = 0x365987ff;
-  ei->palette[9] = 0x000000ff;
-  ei->palette[10] = 0x0033ffff;
-  ei->palette[11] = 0x29adffff;
-  ei->palette[12] = 0x00ffccff;
-  ei->palette[13] = 0xfff1e8ff;
-  ei->palette[14] = 0xc2c3c7ff;
-  ei->palette[15] = 0xab5236ff;
-  ei->palette[16] = 0x5f574fff;
+  (void)ei;
+  /*srand((unsigned int)time(NULL));
+  SDL_Init(SDL_INIT_VIDEO);
+  SDL_Window* win = SDL_CreateWindow("Tet", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 10 + BWIDTH * BS + 10 + 5 * BS + 10, 10 + BHEIGHT * BS + 10, SDL_WINDOW_SHOWN);
 
-  /* DONE setup(); */
-  /* DONE new_game(); */
-
-  /* Tetris initialisation */
-  memzero((void*)g_tetris.board, kBoardWidth * kBoardHeight);
-  /* DONE new_piece(); */
-  piece_new();
-  if (g_tetris.best < g_tetris.score)
+  renderer = SDL_CreateRenderer(win, -1, 0);
+  if (!renderer)
   {
-    g_tetris.best = g_tetris.score;
+    fpr
+    intf(stderr, "Could not create SDL renderer for some reason\n");
+    exit(-1);
   }
-  g_tetris.score = 0;
-  g_tetris.lines = 0;
-  g_tetris.falling_shape = 0;
+
+  TTF_Init();
+  font = TTF_OpenFont("res/LiberationSans-Regular.ttf", 28);
+  memset(board, 0, sizeof board);
+  */
+  /* is_falling_shape = 0; */
+
+  /* Color palette */
+  memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));
+
+  ei->palette[eColorTransparent] = 0x00000000;
+  ei->palette[eColorBlue] = 0x6060f8ff;   /* J */
+  ei->palette[eColorOrange] = 0xf88020ff; /* L */
+  ei->palette[eColorYellow] = 0xf8d800ff; /* square */
+  ei->palette[eColorRed] = 0xe82020ff;    /* Z */
+  ei->palette[eColorGreen] = 0x00d800ff;  /* S */
+  ei->palette[eColorPurple] = 0xc840c8ff; /* T */
+  ei->palette[eColorCyan] = 0x20c8f8ff;   /* line */
+  ei->palette[eColorWhite] = 0xffffffff;  /* flash */
+
+  new_piece();
+  if (best < score)
+  {
+    best = score;
+  }
+  score = 0;
+  lines = 0;
 }
 
 void
 game_update(ExotiqueInterface* ei)
 {
   (void)ei;
-  /* key_down(); */
-  /* update_stuff(); */
-  if (!g_tetris.shine_time && !g_tetris.dead_time && !g_tetris.is_falling_shape)
+  if (!shine_time && !dead_time && !is_falling_shape)
   {
-    piece_new();
-    g_tetris.falling_x = 3;
-    g_tetris.falling_y = -3;
-    g_tetris.falling_rot = 0;
+    new_piece();
+    falling_x = 3;
+    falling_y = -3;
+    falling_rot = 0;
   }
 
-  if (g_tetris.shine_time > 0)
+  if (shine_time > 0)
   {
-    g_tetris.shine_time--;
-    if (g_tetris.shine_time == 0)
+    shine_time--;
+    if (shine_time == 0)
     {
       kill_lines();
     }
   }
 
-  if (g_tetris.dead_time > 0)
+  if (dead_time > 0)
   {
-    i32 x = (g_tetris.dead_time) % kBoardWidth;
-    i32 y = (g_tetris.dead_time) / kBoardWidth;
+    i32 x = (dead_time) % BWIDTH;
+    i32 y = (dead_time) / BWIDTH;
 
-    if (y >= 0 && y < kBoardHeight && x >= 0 && x < kBoardWidth)
+    if (y >= 0 && y < BHEIGHT && x >= 0 && x < BWIDTH)
     {
-      g_tetris.board[y][x] = (u8)(next() % 7 + 1);
+      board[y][x] = (u8)(next() % 7 + 1);
     }
 
-    if (--g_tetris.dead_time == 0)
+    if (--dead_time == 0)
     {
-      /*new_game();*/
-      game_load(ei);
+      new_game();
     }
   }
 
-  if (g_tetris.idle_time >= 30)
+  if (idle_time >= 30)
   {
     move(0, 1);
   }
+  ++idle_time;
 }
 
 void
 game_draw(ExotiqueInterface* ei)
 {
-  /*(void)ei;*/
-  memzero(ei->screen, kScreenPixels);
+  (void)ei;
+  /* draw background, black boxes */
+  /*
+  SDL_SetRenderDrawColor(renderer, 25, 40, 35, 255);
+  SDL_RenderClear(renderer);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderFillRect(renderer, &(SDL_Rect){10, 10, BS * BWIDTH, BS * BHEIGHT});
+  SDL_RenderFillRect(renderer, &(SDL_Rect){10 + BS * BWIDTH + 10, 10, BS * 5, BS * 5});
+  */
 
-  /* draw_stuff(); */
-
+  /* draw falling piece & shadow */
   {
-    i32 x1 = (i32)(next() % kScreenWidth);
-    i32 y1 = (i32)(next() % kScreenHeight);
-    i32 x2 = (i32)(next() % kScreenWidth);
-    i32 y2 = (i32)(next() % kScreenHeight);
-    u8 color = (next() % 16) + 1;
-    line_draw(ei->screen, x1, y1, x2, y2, color);
+    i32 i = 0;
+    for (; i < 4; ++i)
+    {
+      i32 j = 0;
+      for (; j < 4; ++j)
+      {
+        i32 world_i = i + falling_x;
+        i32 world_j = j + falling_y;
+        /*i32 shadow_j = MAX(world_j + 1, 0);*/
+
+        if (!is_solid_part(falling_shape, falling_rot, i, j))
+        {
+          continue;
+        }
+
+        /*
+        SDL_SetRenderDrawColor(renderer, 8, 13, 12, 255);
+        SDL_RenderFillRect(renderer, &(SDL_Rect){10 + BS * world_i, 10 + BS * shadow_j, BS, BS * (BHEIGHT - shadow_j)});
+        */
+
+        if (world_j >= 0)
+        {
+          draw_square(ei->screen, 10 + BS * world_i, 10 + BS * world_j, falling_shape + 1);
+        }
+      }
+    }
   }
 
-  /* Drawing circles */
-  /* NOTE: The convoluted calculation below is to avoid drawing circles outside of the screen. */
+  /* draw next piece, centered in the preview box */
   {
-    i32 radius = (i32)(next() % 90) + 1;
-    i32 x = (i32)(next() % kScreenWidth);
-    i32 y = (i32)(next() % kScreenHeight);
-    u8 color = (next() % 16) + 1;
-    circle_line_draw(ei->screen, x, y, radius, color);
+    i32 i = 0;
+    for (; i < 4; ++i)
+    {
+      i32 j = 0;
+      for (; j < 4; ++j)
+      {
+        if (is_solid_part(next_shape, 0, i, j))
+        {
+          draw_square(ei->screen, PREVIEW_BOX_X + BS * i + BS2 * center[2 * next_shape], 10 + BS * j + BS2 * center[2 * next_shape + 1], next_shape + 1);
+        }
+      }
+    }
   }
 
+  /* draw board pieces */
   {
-    i32 x1 = (i32)(next() % kScreenWidth);
-    i32 y1 = (i32)(next() % kScreenHeight);
-    i32 x2 = (i32)(next() % kScreenWidth);
-    i32 y2 = (i32)(next() % kScreenHeight);
-    i32 x3 = (i32)(next() % kScreenWidth);
-    i32 y3 = (i32)(next() % kScreenHeight);
-    u8 color = (next() % 16) + 1;
-    triangle_line_draw(ei->screen, x1, y1, x2, y2, x3, y3, color);
+    i32 i = 0;
+    for (; i < BWIDTH; ++i)
+    {
+      i32 j = 0;
+      for (; j < BHEIGHT; ++j)
+      {
+        if (board[j][i])
+        {
+          draw_square(ei->screen, 10 + BS * i, 10 + BS * j, board[j][i]);
+        }
+      }
+    }
   }
 
-  {
-    i32 x1 = (i32)(next() % kScreenWidth);
-    i32 y1 = (i32)(next() % kScreenHeight);
-    i32 x2 = (i32)(next() % kScreenWidth);
-    i32 y2 = (i32)(next() % kScreenHeight);
-    u8 color = (next() % 16) + 1;
-    rectangle_line_draw(ei->screen, x1, y1, x2, y2, color);
-  }
-  /* idle_time++ */ /* ??? */
+  /* draw counters and instructions */
+  /*
+  text("Lines:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 0);
+  text("%d", lines, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 30);
+  text("Score:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 70);
+  text("%d", score, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 100);
+  text("Best:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 140);
+  text("%d", best, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 170);
+  text("Controls:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 370);
+  text("arrows, z, x", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 400);
+
+  SDL_RenderPresent(renderer);
+  */
 }
