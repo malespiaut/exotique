@@ -58,7 +58,22 @@ union vec2i_u
 typedef struct PlayerInput PlayerInput;
 struct PlayerInput
 {
-  u32 buttons;
+  unsigned up : 1;
+  unsigned down : 1;
+  unsigned left : 1;
+  unsigned right : 1;
+  unsigned select : 1;
+  unsigned start : 1;
+  unsigned a : 1;
+  unsigned b : 1;
+  unsigned x : 1;
+  unsigned y : 1;
+  unsigned l1 : 1;
+  unsigned r1 : 1;
+  unsigned l2 : 1;
+  unsigned r2 : 1;
+  unsigned l3 : 1;
+  unsigned r3 : 1;
   vec2i_t joystick;
 };
 
@@ -69,7 +84,7 @@ struct ExotiqueInterface
   u32* palette; /* [255] */
 
   vec2i_t mouse;
-  PlayerInput player[4];
+  PlayerInput input[4];
 
   u64 ticks;
 };

@@ -10,7 +10,7 @@
 #pragma GCC diagnostic ignored "-Wundef"
 #pragma GCC diagnostic ignored "-Wswitch-default"
 #include <SDL.h>
-#include <SDL_image.h>
+//#include <SDL_image.h>
 #pragma GCC diagnostic pop
 
 // XXX: Screen constants
@@ -27,11 +27,20 @@ enum eKey
   eKey_down,
   eKey_left,
   eKey_right,
-  eKey_shoot,
-  eKey_cancel,
-  eKey_pause,
-  eKey_count
-};
+  eKey_select,
+  eKey_start,
+  eKey_a,
+  eKey_b,
+  eKey_x,
+  eKey_y,
+  eKey_l1,
+  eKey_r1,
+  eKey_l2,
+  eKey_r2,
+  eKey_l3,
+  eKey_r3,
+  eKey__COUNT
+}; /* There are 16 buttons. That hopefully should be way more than enough! */
 typedef enum eKey eKey;
 
 enum eKeyState
@@ -43,29 +52,6 @@ enum eKeyState
   eKeyState_active_bit = 0x2 // 0b10
 };
 typedef enum eKeyState eKeyState;
-
-enum eButton
-{
-  bUp,
-  bDown,
-  bLeft,
-  bRight,
-  bSelect,
-  bStart,
-  bA,
-  bB,
-  bX,
-  bY,
-  bL1,
-  bR1,
-  bL2,
-  bR2,
-  bL3,
-  bR3,
-  bMouseLeftClick,
-  bMouseRightClick
-};
-typedef enum eButton eButton;
 
 typedef struct ScreenManager ScreenManager;
 struct ScreenManager
@@ -85,8 +71,8 @@ struct GameManager
   const char* name;
   ScreenManager screen_manager;
   bool exit;
-  SDL_Scancode key_map[7]; // 7 = eKey_count
-  uint8_t key_states[7];   // 7 = eKey_count
+  SDL_Scancode key_map[16]; // 16 buttons
+  uint8_t key_states[16];   // 16 buttons
 };
 
 typedef struct vec2i_s vec2i_t;
@@ -99,7 +85,22 @@ struct vec2i_s
 typedef struct PlayerInput PlayerInput;
 struct PlayerInput
 {
-  uint32_t buttons;
+  unsigned up : 1;
+  unsigned down : 1;
+  unsigned left : 1;
+  unsigned right : 1;
+  unsigned select : 1;
+  unsigned start : 1;
+  unsigned a : 1;
+  unsigned b : 1;
+  unsigned x : 1;
+  unsigned y : 1;
+  unsigned l1 : 1;
+  unsigned r1 : 1;
+  unsigned l2 : 1;
+  unsigned r2 : 1;
+  unsigned l3 : 1;
+  unsigned r3 : 1;
   vec2i_t joystick;
 };
 
@@ -110,7 +111,7 @@ struct ExotiqueInterface
   uint32_t* palette; //[256];
 
   vec2i_t mouse;
-  PlayerInput player[4];
+  PlayerInput input[4];
 
   uint64_t ticks;
 };
@@ -132,15 +133,6 @@ static void exotique_panic(GameManager* gm);
 
 // XXX: Input functions
 
-static inline void
-bit_set(uint32_t* data, uint8_t n)
-{
-  if (n < 32) // Ensure n is within 0-31
-  {
-    *data |= ((uint32_t)1 << n);
-  }
-}
-
 static void
 key_state_update(uint8_t* state, bool is_down)
 {
@@ -161,7 +153,7 @@ key_state_update(uint8_t* state, bool is_down)
 static bool
 key_new_get(GameManager* gm, int32_t key)
 {
-  return gm->key_states[key] == eKeyState_pressed;
+  return ((gm->key_states[key] == eKeyState_pressed) || (gm->key_states[key] == eKeyState_held)  );
 }
 
 // XXX: Game functions
@@ -259,7 +251,7 @@ exotique_events(GameManager* gm)
     exotique_panic(gm);
   }
 
-  for (size_t i = 0; i < eKey_count; ++i)
+  for (size_t i = 0; i < eKey__COUNT; ++i)
   {
     const int scancode = (int)gm->key_map[i];
 
@@ -279,7 +271,7 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
 {
   ScreenManager* sm = &gm->screen_manager;
 
-  gm->name = "🌴 Exotique v0.5β - SDL2 (25/05/09)";
+  gm->name = "🌴 Exotique v0.6β - SDL2 (25/08/13)";
 
   sm->screen = malloc((unsigned long)kScreenPixels * sizeof(uint8_t));
   sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(uint32_t));
@@ -288,13 +280,24 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
   gm->key_map[eKey_down] = SDL_SCANCODE_DOWN;
   gm->key_map[eKey_left] = SDL_SCANCODE_LEFT;
   gm->key_map[eKey_right] = SDL_SCANCODE_RIGHT;
-  gm->key_map[eKey_shoot] = SDL_SCANCODE_RETURN;
+  gm->key_map[eKey_select] = SDL_SCANCODE_SPACE;
+  gm->key_map[eKey_start] = SDL_SCANCODE_RETURN;
+  gm->key_map[eKey_a] = SDL_SCANCODE_A;
+  gm->key_map[eKey_b] = SDL_SCANCODE_B;
+  gm->key_map[eKey_x] = SDL_SCANCODE_X;
+  gm->key_map[eKey_y] = SDL_SCANCODE_Y;
+  gm->key_map[eKey_l1] = SDL_SCANCODE_1;
+  gm->key_map[eKey_r1] = SDL_SCANCODE_X;
+  gm->key_map[eKey_l2] = SDL_SCANCODE_6;
+  gm->key_map[eKey_r2] = SDL_SCANCODE_5;
+  gm->key_map[eKey_l3] = SDL_SCANCODE_3;
+  gm->key_map[eKey_r3] = SDL_SCANCODE_4;
 
   ei->screen = gm->screen_manager.screen;
   ei->palette = gm->screen_manager.palette;
 
   memset(&ei->mouse, 0, sizeof(ei->mouse));
-  memset(&ei->player, 0, sizeof(ei->player));
+  memset(&ei->input, 0, sizeof(ei->input));
 }
 
 static void
@@ -315,23 +318,71 @@ exotique_update(GameManager* gm, ExotiqueInterface* ei)
   SDL_GetMouseState(&ei->mouse.x, &ei->mouse.y);
   // SDL_GetGlobalMouseState(&gm->input_manager.mouse_x, &gm->input_manager.mouse_y);
 
-  memset(&ei->player, 0, sizeof(ei->player));
+  memset(&ei->input, 0, sizeof(ei->input));
   exotique_events(gm);
   if (key_new_get(gm, eKey_up))
   {
-    bit_set(&ei->player[0].buttons, bUp);
+    ei->input[0].up = 1;
   }
   if (key_new_get(gm, eKey_down))
   {
-    bit_set(&ei->player[0].buttons, bDown);
+    ei->input[0].down = 1;
   }
   if (key_new_get(gm, eKey_left))
   {
-    bit_set(&ei->player[0].buttons, bLeft);
+    ei->input[0].left = 1;
   }
   if (key_new_get(gm, eKey_right))
   {
-    bit_set(&ei->player[0].buttons, bRight);
+    ei->input[0].right = 1;
+  }
+  if (key_new_get(gm, eKey_select))
+  {
+    ei->input[0].select = 1;
+  }
+  if (key_new_get(gm, eKey_start))
+  {
+    ei->input[0].start = 1;
+  }
+  if (key_new_get(gm, eKey_a))
+  {
+    ei->input[0].a = 1;
+  }
+  if (key_new_get(gm, eKey_b))
+  {
+    ei->input[0].b = 1;
+  }
+  if (key_new_get(gm, eKey_x))
+  {
+    ei->input[0].x = 1;
+  }
+  if (key_new_get(gm, eKey_y))
+  {
+    ei->input[0].y = 1;
+  }
+  if (key_new_get(gm, eKey_l1))
+  {
+    ei->input[0].l1 = 1;
+  }
+  if (key_new_get(gm, eKey_r1))
+  {
+    ei->input[0].r1 = 1;
+  }
+  if (key_new_get(gm, eKey_l2))
+  {
+    ei->input[0].l2 = 1;
+  }
+  if (key_new_get(gm, eKey_r2))
+  {
+    ei->input[0].r2 = 1;
+  }
+  if (key_new_get(gm, eKey_l3))
+  {
+    ei->input[0].l3 = 1;
+  }
+  if (key_new_get(gm, eKey_r3))
+  {
+    ei->input[0].r3 = 1;
   }
 }
 
