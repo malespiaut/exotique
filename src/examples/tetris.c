@@ -27,7 +27,8 @@ enum color_e
   eColorGreen,
   eColorPurple,
   eColorCyan,
-  eColorWhite
+  eColorWhite,
+  eColorShadow
 };
 typedef enum color_e color_t;
 
@@ -262,10 +263,6 @@ i32 idle_time;
 i32 shine_time;
 i32 dead_time;
 
-/* SDL_Event event;
-SDL_Renderer* renderer;
-TTF_Font* font; */
-
 /* XXX: 32-bits PRNG - xoshiro128++ */
 
 static /*inline*/ u32
@@ -300,8 +297,6 @@ next(void)
 static i32
 is_solid_part(shape_t shape, i32 rot, i32 i, i32 j)
 {
-  /*  i32 base = shape * 5 + rot * 5 * 8 * 4; */
-  /*  return shapes[base + j * 5 * 8 + i] == 'O'; */
   i32 base = ((i32)shape + rot * 7) * 16; /* 16 chars per shape (4x4 grid) */
   return shapes[base + j * 4 + i] == 'O'; /* 4 chars per row */
 }
@@ -429,7 +424,7 @@ move(i32 dx, i32 dy)
 }
 
 /* move the falling piece as far down as it will go */
-/*
+
 static void
 slam(void)
 {
@@ -438,10 +433,8 @@ slam(void)
     idle_time = 0;
   }
 }
-*/
 
 /* spin the falling piece left or right, if possible */
-/*
 static void
 spin(void)
 {
@@ -456,45 +449,7 @@ spin(void)
     falling_x -= 1;
     falling_rot = new_rot;
   }
-}*/
-
-/* handle a key press from the player */
-/*static void
-key_down(void)
-{*/
-/*
-if (is_falling_shape)
-  switch (event.key.keysym.sym)
-  {
-    case SDLK_a:
-    case SDLK_LEFT:
-      move(-1, 0);
-      break;
-    case SDLK_d:
-    case SDLK_RIGHT:
-      move(1, 0);
-      break;
-    case SDLK_w:
-    case SDLK_UP:
-      slam();
-      break;
-    case SDLK_s:
-    case SDLK_DOWN:
-      move(0, 1);
-      break;
-    case SDLK_q:
-    case SDLK_z:
-      spin();
-      break;
-    case SDLK_e:
-    case SDLK_x:
-      spin();
-      break;
-    default:
-      break;
-  }
-  */
-/*}*/
+}
 
 /* randomly pick a new next piece, and put the old on in play */
 static void
@@ -521,7 +476,6 @@ kill_lines(void)
     ++lines;
     ++new_lines;
     killy_lines[y] = 0;
-    /*memset(board[0], 0, sizeof *board);*/
     memzero(board[0], sizeof(*board));
 
     {
@@ -555,23 +509,6 @@ kill_lines(void)
       break;
   }
 }
-
-/* reset score and pick one extra random piece */
-static void
-new_game(void)
-{
-}
-
-/* set the current draw color to the color assoc. with a shape */
-/*
-static void
-set_color_from_shape(i32 shape, i32 shade)
-{
-  i32 r = MAX(colors[shape * 3 + 0] + shade, 0);
-  i32 g = MAX(colors[shape * 3 + 1] + shade, 0);
-  i32 b = MAX(colors[shape * 3 + 2] + shade, 0);
-  SDL_SetRenderDrawColor(renderer, (Uint8)r, (Uint8)g, (Uint8)b, 255);
-}*/
 
 static void
 rectangle_fill_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, color_t color)
@@ -610,79 +547,61 @@ rectangle_fill_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, color_t color)
 static void
 draw_square(u8* screen, i32 x, i32 y, shape_t shape)
 {
-  /*
-  set_color_from_shape(shape, -25);
-  SDL_RenderDrawRect(renderer, &(SDL_Rect){x, y, BS, BS});
-  set_color_from_shape(shape, 0);
-  SDL_RenderFillRect(renderer, &(SDL_Rect){1 + x, 1 + y, BS - 2, BS - 2});
-  */
   rectangle_fill_draw(screen, x, y, x + BS, y + BS, (color_t)shape);
 }
 
-/* render a centered line of text optionally with a %d value in it */
-/*
+/* Function to handle user input */
 static void
-text(const char* fstr, i32 value, i32 x, i32 y)
+input(PlayerInput buttons)
 {
-  (void)fstr;
-  (void)value;
-  (void)x;
-  (void)y;*/
-/*
-if (!font)
-{
-  return;
+  if (is_falling_shape)
+  {
+    /*if (bit_get(buttons, bUp))*/
+    if (buttons.up)
+    {
+      slam();
+    }
+
+    if (buttons.down)
+    {
+      move(0, 1);
+    }
+
+    if (buttons.left)
+    {
+      move(-1, 0);
+    }
+
+    if (buttons.right)
+    {
+      move(1, 0);
+    }
+
+    if (buttons.x)
+    {
+      spin();
+    }
+  }
 }
-i32 w, h;
-char msg[80];
-snprintf(msg, 80, fstr, value);
-TTF_SizeText(font, msg, &w, &h);
-SDL_Surface* msgsurf = TTF_RenderText_Blended(font, msg, (SDL_Color){80, 90, 85, 255});
-SDL_Texture* msgtex = SDL_CreateTextureFromSurface(renderer, msgsurf);
-SDL_Rect fromrec = {0, 0, msgsurf->w, msgsurf->h};
-SDL_Rect torec = {x, y, msgsurf->w, msgsurf->h};
-SDL_RenderCopy(renderer, msgtex, &fromrec, &torec);
-SDL_DestroyTexture(msgtex);
-SDL_FreeSurface(msgsurf);
-*/
-/*}*/
 
 /* XXX: Exotique core functions */
 
 void
 game_load(ExotiqueInterface* ei)
 {
-  (void)ei;
-  /*srand((unsigned int)time(NULL));
-  SDL_Init(SDL_INIT_VIDEO);
-  SDL_Window* win = SDL_CreateWindow("Tet", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 10 + BWIDTH * BS + 10 + 5 * BS + 10, 10 + BHEIGHT * BS + 10, SDL_WINDOW_SHOWN);
-
-  renderer = SDL_CreateRenderer(win, -1, 0);
-  if (!renderer)
-  {
-    fpr
-    intf(stderr, "Could not create SDL renderer for some reason\n");
-    exit(-1);
-  }
-
-  TTF_Init();
-  font = TTF_OpenFont("res/LiberationSans-Regular.ttf", 28);
-  memset(board, 0, sizeof board);
-  */
-  /* is_falling_shape = 0; */
-
   /* Color palette */
   memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));
 
   ei->palette[eColorTransparent] = 0x00000000;
-  ei->palette[eColorBlue] = 0x6060f8ff;   /* J */
-  ei->palette[eColorOrange] = 0xf88020ff; /* L */
-  ei->palette[eColorYellow] = 0xf8d800ff; /* square */
-  ei->palette[eColorRed] = 0xe82020ff;    /* Z */
-  ei->palette[eColorGreen] = 0x00d800ff;  /* S */
-  ei->palette[eColorPurple] = 0xc840c8ff; /* T */
-  ei->palette[eColorCyan] = 0x20c8f8ff;   /* line */
+  ei->palette[eColorBlue] = 0x5ba8ffff;   /* J */
+  ei->palette[eColorOrange] = 0xf68f37ff; /* L */
+  ei->palette[eColorYellow] = 0xffe737ff; /* square */
+  ei->palette[eColorRed] = 0xe03c28ff;    /* Z */
+  ei->palette[eColorGreen] = 0x58d332ff;  /* S */
+  ei->palette[eColorPurple] = 0xcc69e4ff; /* T */
+  ei->palette[eColorCyan] = 0x25e2cdff;   /* line */
   ei->palette[eColorWhite] = 0xffffffff;  /* flash */
+  ei->palette[eColorShadow] = 0x151515ff; /* flash */
 
   new_piece();
   if (best < score)
@@ -696,7 +615,9 @@ game_load(ExotiqueInterface* ei)
 void
 game_update(ExotiqueInterface* ei)
 {
-  (void)ei;
+  /* Handle user input */
+  input(ei->input[0]);
+
   if (!shine_time && !dead_time && !is_falling_shape)
   {
     new_piece();
@@ -726,7 +647,7 @@ game_update(ExotiqueInterface* ei)
 
     if (--dead_time == 0)
     {
-      new_game();
+      /*new_game();*/
     }
   }
 
@@ -740,15 +661,7 @@ game_update(ExotiqueInterface* ei)
 void
 game_draw(ExotiqueInterface* ei)
 {
-  (void)ei;
-  /* draw background, black boxes */
-  /*
-  SDL_SetRenderDrawColor(renderer, 25, 40, 35, 255);
-  SDL_RenderClear(renderer);
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  SDL_RenderFillRect(renderer, &(SDL_Rect){10, 10, BS * BWIDTH, BS * BHEIGHT});
-  SDL_RenderFillRect(renderer, &(SDL_Rect){10 + BS * BWIDTH + 10, 10, BS * 5, BS * 5});
-  */
+  memzero(ei->screen, (u64)kScreenPixels);
 
   /* draw falling piece & shadow */
   {
@@ -760,17 +673,14 @@ game_draw(ExotiqueInterface* ei)
       {
         i32 world_i = i + falling_x;
         i32 world_j = j + falling_y;
-        /*i32 shadow_j = MAX(world_j + 1, 0);*/
+        i32 shadow_j = MAX(world_j + 1, 0);
 
         if (!is_solid_part(falling_shape, falling_rot, i, j))
         {
           continue;
         }
 
-        /*
-        SDL_SetRenderDrawColor(renderer, 8, 13, 12, 255);
-        SDL_RenderFillRect(renderer, &(SDL_Rect){10 + BS * world_i, 10 + BS * shadow_j, BS, BS * (BHEIGHT - shadow_j)});
-        */
+        rectangle_fill_draw(ei->screen, 10 + BS * world_i, 10 + BS * shadow_j, 10 + (BS * world_i) + BS, 10 + (BS * shadow_j) + (BS * (BHEIGHT - shadow_j)), eColorShadow);
 
         if (world_j >= 0)
         {
@@ -811,18 +721,4 @@ game_draw(ExotiqueInterface* ei)
       }
     }
   }
-
-  /* draw counters and instructions */
-  /*
-  text("Lines:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 0);
-  text("%d", lines, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 30);
-  text("Score:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 70);
-  text("%d", score, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 100);
-  text("Best:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 140);
-  text("%d", best, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 170);
-  text("Controls:", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 370);
-  text("arrows, z, x", 0, 10 + BS * BWIDTH + 10, 10 + BS * 5 + 10 + 400);
-
-  SDL_RenderPresent(renderer);
-  */
 }
