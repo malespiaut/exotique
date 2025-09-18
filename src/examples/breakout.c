@@ -434,7 +434,11 @@ paddle_update(i32 mouse_x)
 void
 game_update(ExotiqueInterface* ei)
 {
-  ball_update();
+  if (g_game.player.lives)
+  {
+    ball_update();
+  }
+
   paddle_update(ei->mouse.xy.x);
 }
 
@@ -448,5 +452,8 @@ game_draw(ExotiqueInterface* ei)
   paddle_draw(ei->screen);
   ball_draw(ei->screen);
 
+  /* Draw score */
   numbers_draw(ei->screen, 36, 2, g_game.player.score, 3, eColorWhite);
+  /* Draw lives */
+  numbers_draw(ei->screen, 100, 2, g_game.player.lives, 1, eColorWhite);
 }
