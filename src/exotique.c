@@ -10,7 +10,6 @@
 #pragma GCC diagnostic ignored "-Wundef"
 #pragma GCC diagnostic ignored "-Wswitch-default"
 #include <SDL.h>
-//#include <SDL_image.h>
 #pragma GCC diagnostic pop
 
 // XXX: Screen constants
@@ -73,6 +72,7 @@ struct GameManager
   bool exit;
   SDL_Scancode key_map[16]; // 16 buttons
   uint8_t key_states[16];   // 16 buttons
+  SDL_GameController* controllers[4];
 };
 
 typedef struct vec2i_s vec2i_t;
@@ -153,7 +153,7 @@ key_state_update(uint8_t* state, bool is_down)
 static bool
 key_new_get(GameManager* gm, int32_t key)
 {
-  return ((gm->key_states[key] == eKeyState_pressed) || (gm->key_states[key] == eKeyState_held)  );
+  return ((gm->key_states[key] == eKeyState_pressed) || (gm->key_states[key] == eKeyState_held));
 }
 
 // XXX: Game functions
@@ -201,6 +201,32 @@ exotique_events(GameManager* gm)
     {
       case SDL_QUIT:
         gm->exit = true;
+        break;
+
+      case SDL_CONTROLLERDEVICEADDED:
+        for (int i = 0; i < 4; ++i)
+        {
+          if (!gm->controllers[i])
+          {
+            gm->controllers[i] = SDL_GameControllerOpen(event.cdevice.which);
+            break;
+          }
+        }
+        break;
+
+      case SDL_CONTROLLERDEVICEREMOVED:
+        {
+          SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.which);
+          for (int i = 0; i < 4; ++i)
+          {
+            if (gm->controllers[i] == controller)
+            {
+              SDL_GameControllerClose(controller);
+              gm->controllers[i] = NULL;
+              break;
+            }
+          }
+        }
         break;
 
       case SDL_KEYDOWN:
@@ -271,7 +297,7 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
 {
   ScreenManager* sm = &gm->screen_manager;
 
-  gm->name = "🌴 Exotique v0.6β - SDL2 (25/08/13)";
+  gm->name = "🌴 Exotique v0.8β - SDL2 (26/05/17)";
 
   sm->screen = malloc((unsigned long)kScreenPixels * sizeof(uint8_t));
   sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(uint32_t));
@@ -287,8 +313,8 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
   gm->key_map[eKey_x] = SDL_SCANCODE_X;
   gm->key_map[eKey_y] = SDL_SCANCODE_Y;
   gm->key_map[eKey_l1] = SDL_SCANCODE_1;
-  gm->key_map[eKey_r1] = SDL_SCANCODE_X;
-  gm->key_map[eKey_l2] = SDL_SCANCODE_6;
+  gm->key_map[eKey_r1] = SDL_SCANCODE_6;
+  gm->key_map[eKey_l2] = SDL_SCANCODE_2;
   gm->key_map[eKey_r2] = SDL_SCANCODE_5;
   gm->key_map[eKey_l3] = SDL_SCANCODE_3;
   gm->key_map[eKey_r3] = SDL_SCANCODE_4;
@@ -298,12 +324,22 @@ exotique_load(GameManager* gm, ExotiqueInterface* ei)
 
   memset(&ei->mouse, 0, sizeof(ei->mouse));
   memset(&ei->input, 0, sizeof(ei->input));
+  memset(gm->controllers, 0, sizeof(gm->controllers));
 }
 
 static void
 exotique_unload(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
+
+  for (int i = 0; i < 4; ++i)
+  {
+    if (gm->controllers[i])
+    {
+      SDL_GameControllerClose(gm->controllers[i]);
+      gm->controllers[i] = NULL;
+    }
+  }
 
   free(sm->screen);
   free(sm->screen_rgba);
@@ -320,6 +356,8 @@ exotique_update(GameManager* gm, ExotiqueInterface* ei)
 
   memset(&ei->input, 0, sizeof(ei->input));
   exotique_events(gm);
+
+  // Keyboard updates input[0]
   if (key_new_get(gm, eKey_up))
   {
     ei->input[0].up = 1;
@@ -384,6 +422,84 @@ exotique_update(GameManager* gm, ExotiqueInterface* ei)
   {
     ei->input[0].r3 = 1;
   }
+
+  // Gamepads update input[0..3]
+  for (int i = 0; i < 4; ++i)
+  {
+    SDL_GameController* pad = gm->controllers[i];
+    if (!pad)
+    {
+      continue;
+    }
+
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP))
+    {
+      ei->input[i].up = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN))
+    {
+      ei->input[i].down = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT))
+    {
+      ei->input[i].left = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
+    {
+      ei->input[i].right = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK))
+    {
+      ei->input[i].select = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_START))
+    {
+      ei->input[i].start = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A))
+    {
+      ei->input[i].a = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B))
+    {
+      ei->input[i].b = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X))
+    {
+      ei->input[i].x = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y))
+    {
+      ei->input[i].y = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
+    {
+      ei->input[i].l1 = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER))
+    {
+      ei->input[i].r1 = 1;
+    }
+    if (SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 16384)
+    {
+      ei->input[i].l2 = 1;
+    }
+    if (SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16384)
+    {
+      ei->input[i].r2 = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSTICK))
+    {
+      ei->input[i].l3 = 1;
+    }
+    if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSTICK))
+    {
+      ei->input[i].r3 = 1;
+    }
+
+    ei->input[i].joystick.x = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+    ei->input[i].joystick.y = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+  }
 }
 
 // XXX: SDL functions
@@ -395,7 +511,7 @@ sdl_load(GameManager* gm)
 
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
   SDL_LogInfo(SDL_LOG_CATEGORY_SYSTEM, "SDL2 initialization");
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER))
   {
     SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Couldn't initialize the SDL library: %s", SDL_GetError());
     exotique_panic(gm);

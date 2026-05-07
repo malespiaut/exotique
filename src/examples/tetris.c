@@ -1,6 +1,6 @@
 #include "exotique.h"
 
-/* XXX: Screen size */
+/* Screen size */
 
 const i32 kScreenWidth = 480;
 const i32 kScreenHeight = 620;
@@ -263,7 +263,7 @@ i32 idle_time;
 i32 shine_time;
 i32 dead_time;
 
-/* XXX: 32-bits PRNG - xoshiro128++ */
+/* 32-bits PRNG - xoshiro128++ */
 
 static /*inline*/ u32
 rotl(const u32 x, i32 k)
@@ -556,7 +556,6 @@ input(PlayerInput buttons)
 {
   if (is_falling_shape)
   {
-    /*if (bit_get(buttons, bUp))*/
     if (buttons.up)
     {
       slam();
@@ -584,7 +583,7 @@ input(PlayerInput buttons)
   }
 }
 
-/* XXX: Exotique core functions */
+/* Exotique core functions */
 
 void
 game_load(ExotiqueInterface* ei)

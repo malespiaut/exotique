@@ -1,12 +1,12 @@
 #include "exotique.h"
 
-/* XXX: Screen size */
+/* Screen size */
 
 const i32 kScreenWidth = 320;
 const i32 kScreenHeight = 200;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
-/* XXX: 32-bits PRNG - xoshiro128++ */
+/* 32-bits PRNG - xoshiro128++ */
 
 static /*inline*/ u32
 rotl(const u32 x, i32 k)
@@ -36,7 +36,7 @@ next(void)
   return result;
 }
 
-/* XXX: Doom fire */
+/* Doom fire */
 
 static void
 fire_spread(u8* screen, i32 src)
@@ -108,7 +108,7 @@ fire_draw(u8* screen)
   }
 }
 
-/* XXX: Exotique interface functions */
+/* Exotique interface functions */
 
 void
 game_load(ExotiqueInterface* ei)

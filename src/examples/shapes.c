@@ -1,12 +1,12 @@
 #include "exotique.h"
 
-/* XXX: Screen size */
+/* Screen size */
 
 const i32 kScreenWidth = 320;
 const i32 kScreenHeight = 200;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
-/* XXX: C library reimplementation */
+/* C library reimplementation */
 
 static void
 memzero(u8* dest, u64 len)
@@ -17,7 +17,7 @@ memzero(u8* dest, u64 len)
   }
 }
 
-/* XXX: 32-bits PRNG - xoshiro128++ */
+/* 32-bits PRNG - xoshiro128++ */
 
 static /*inline*/ u32
 rotl(const u32 x, i32 k)
@@ -53,7 +53,7 @@ abs(i32 x)
   return x < 0 ? -x : x;
 }
 
-/* XXX: Shape functions */
+/* Shape functions */
 
 /* Helper macro to ensure that pixel is within screen bounds */
 #define in_bound(x, y) ((x) >= 0 && (x) < kScreenWidth && (y) >= 0 && (y) < kScreenHeight)
@@ -265,7 +265,7 @@ rectangle_line_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, u8 color)
   line_draw(screen, x2, y2, x1, y2, color);
 }
 
-/* XXX: Exotique core functions */
+/* Exotique core functions */
 
 void
 game_load(ExotiqueInterface* ei)

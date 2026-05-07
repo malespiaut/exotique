@@ -1,12 +1,12 @@
 #include "exotique.h"
 
-/* XXX: Screen size */
+/* Screen size */
 
 const i32 kScreenWidth = 320;
 const i32 kScreenHeight = 200;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
-/* XXX: Structures and types */
+/* Structures and types */
 
 enum color_e
 {
@@ -30,7 +30,7 @@ enum color_e
 };
 typedef enum color_e color_t;
 
-/* XXX: Maths */
+/* Maths */
 
 /* Trig junk:  (thanks to Atari BASIC for this) */
 
@@ -83,7 +83,7 @@ fast_sin(i32 angle)
   return (-fast_cos((angle + 11) % 45));
 }
 
-/* XXX: Font */
+/* Font */
 
 /*static u8 tile[8] = {0x00, 0x3c, 0x42, 0x7e, 0x40, 0x42, 0x3c, 0x00};*/
 /*
@@ -370,7 +370,7 @@ memzero(u8* dest, u64 len)
   }
 }
 
-/* XXX: Exotique interface functions */
+/* Exotique interface functions */
 
 void
 game_load(ExotiqueInterface* ei)
