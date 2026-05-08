@@ -306,18 +306,21 @@ static const u8 msx01x02_8x16_font[96][16] = {
 static const u8* twtr_8x8_font_ptrs[96];
 static const u8* msx01x02_8x16_font_ptrs[96];
 
+static color_t text_color = eColorRipePlum;
+
 static void
 bit_draw(ExotiqueInterface* ei, const u8* sprite, i32 x, i32 y, i32 width, i32 height, color_t color)
 {
-  i32 row;
-  for (row = 0; row < height; ++row)
+  i32 row = 0;
+  for (; row < height; ++row)
   {
-    i32 col;
-    for (col = 0; col < width; ++col)
+    i32 col = 0;
+    for (; col < width; ++col)
     {
-      if (sprite[row] << col & 0x80)
+      i32 bit_idx = row * width + col;
+      if (sprite[bit_idx >> 3] << (bit_idx & 7) & 0x80)
       {
-        if ((x + col) >= 0 && (x + col <= kScreenWidth) && (y + row) >= 0 && (y + row) <= kScreenHeight)
+        if ((x + col) >= 0 && (x + col < kScreenWidth) && (y + row) >= 0 && (y + row) < kScreenHeight)
         {
           ei->screen[(x + col) + kScreenWidth * (y + row)] = color;
         }
@@ -410,6 +413,14 @@ void
 game_update(ExotiqueInterface* ei)
 {
   (void)ei;
+  if (!(ei->ticks % 3))
+  {
+    ++text_color;
+  }
+  if (text_color >= eColor__COUNT)
+  {
+    text_color = eColorRipePlum;
+  }
 }
 
 void
@@ -419,14 +430,14 @@ game_draw(ExotiqueInterface* ei)
 
   /* Demonstrate flexible font rendering with different sizes */
   text_draw(ei, msx01x02_8x16_font_ptrs, 20, 20, 8, 16, eColorTorchRed, "Hello World!");
-  text_draw(ei, msx01x02_8x16_font_ptrs, 20, 50, 8, 16, eColorLima, "ANSI C89 Font Demo");
+  text_draw(ei, msx01x02_8x16_font_ptrs, 20, 50, 8, 16, eColorLima, "Exotique font Demo");
   text_draw(ei, msx01x02_8x16_font_ptrs, 20, 80, 8, 16, eColorBrightTurquoise, "Supports any font size!");
 
-  text_draw_sine(ei, msx01x02_8x16_font_ptrs, 20, 110, 8, 16, eColorTorchRed, "Hello World!");
+  text_draw_sine(ei, msx01x02_8x16_font_ptrs, 20, 110, 8, 16, text_color, "Exotique is awesome!");
 
   text_draw(ei, twtr_8x8_font_ptrs, 100, 36, 8, 8, eColorTorchRed, "Hello World!");
-  text_draw(ei, twtr_8x8_font_ptrs, 100, 66, 8, 8, eColorLima, "ANSI C89 Font Demo");
+  text_draw(ei, twtr_8x8_font_ptrs, 100, 66, 8, 8, eColorLima, "Exotique font Demo");
   text_draw(ei, twtr_8x8_font_ptrs, 100, 96, 8, 8, eColorBrightTurquoise, "Supports any font size!");
 
-  text_draw_sine(ei, twtr_8x8_font_ptrs, 100, 126, 8, 8, eColorTorchRed, "Hello World!");
+  text_draw_sine(ei, twtr_8x8_font_ptrs, 100, 130, 8, 8, text_color, "Exotique is awesome!");
 }
