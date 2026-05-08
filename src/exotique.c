@@ -280,7 +280,7 @@ exotique_init(GameManager* gm)
   ExotiqueInterface* ei = &gm->ei;
   ScreenManager* sm = &gm->screen_manager;
 
-  gm->name = "🌴 Exotique v0.8β - SDL2 (26/05/17)";
+  gm->name = "🌴 Exotique v0.8.1β - SDL2 (26/05/08)";
 
   sm->screen = malloc((unsigned long)kScreenPixels * sizeof(u8));
   sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(u32));
