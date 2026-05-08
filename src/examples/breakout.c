@@ -45,7 +45,8 @@ enum color_e
   eColorGreen,
   eColorBlue,
   eColorPurple,
-  eColorBlack
+  eColorBlack,
+  eColor__COUNT
 };
 typedef enum color_e color_t;
 

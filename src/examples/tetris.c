@@ -28,7 +28,8 @@ enum color_e
   eColorPurple,
   eColorCyan,
   eColorWhite,
-  eColorShadow
+  eColorShadow,
+  eColor__COUNT
 };
 typedef enum color_e color_t;
 
@@ -41,7 +42,7 @@ enum shape_e
   eShapeS,
   eShapeT,
   eShapeLine,
-  eShapeFlash
+  eShape__COUNT
 };
 typedef enum shape_e shape_t;
 

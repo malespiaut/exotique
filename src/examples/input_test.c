@@ -26,7 +26,8 @@ enum color_e
   eColorSeashellPeach,
   eColorFrenchGray,
   eColorBrownRust,
-  eColorSoyaBean
+  eColorSoyaBean,
+  eColor__COUNT
 };
 typedef enum color_e color_t;
 
