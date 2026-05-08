@@ -1,3 +1,6 @@
+#ifndef EXOTIQUE_H
+#define EXOTIQUE_H
+
 typedef signed char i8;
 typedef unsigned char u8;
 typedef short i16;
@@ -63,3 +66,5 @@ struct ExotiqueInterface
 void game_init(ExotiqueInterface* ei);
 void game_update(ExotiqueInterface* ei);
 void game_draw(ExotiqueInterface* ei);
+
+#endif /* EXOTIQUE_H */
