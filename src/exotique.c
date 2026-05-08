@@ -27,8 +27,8 @@ typedef double f64;
 
 // XXX: Screen constants
 
-extern const int kScreenWidth;
-extern const int kScreenHeight;
+extern const i32 kScreenWidth;
+extern const i32 kScreenHeight;
 #define kScreenPixels (kScreenWidth * kScreenHeight)
 
 // XXX: Data structures
@@ -72,9 +72,9 @@ struct ScreenManager
   SDL_Texture* texture;
   SDL_Window* window;
   bool fullscreen;
-  uint8_t* screen;
-  uint32_t* screen_rgba;
-  uint32_t palette[256];
+  u8* screen;
+  u32* screen_rgba;
+  u32 palette[256];
 };
 
 typedef struct GameManager GameManager;
@@ -84,7 +84,7 @@ struct GameManager
   ScreenManager screen_manager;
   bool exit;
   SDL_Scancode key_map[16]; // 16 buttons
-  uint8_t key_states[16];   // 16 buttons
+  u8 key_states[16];        // 16 buttons
   SDL_GameController* controllers[4];
   ExotiqueInterface ei;
 };
@@ -106,7 +106,7 @@ static void exotique_panic(GameManager* gm);
 // XXX: Input functions
 
 static void
-key_state_update(uint8_t* state, bool is_down)
+key_state_update(u8* state, bool is_down)
 {
   switch (*state) // look at prev state
   {
@@ -123,7 +123,7 @@ key_state_update(uint8_t* state, bool is_down)
 }
 
 static bool
-key_new_get(GameManager* gm, int32_t key)
+key_new_get(GameManager* gm, i32 key)
 {
   return ((gm->key_states[key] == eKeyState_pressed) || (gm->key_states[key] == eKeyState_held));
 }
@@ -135,11 +135,11 @@ exotique_draw(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
 
-  for (int32_t i = 0; i < kScreenPixels; ++i)
+  for (i32 i = 0; i < kScreenPixels; ++i)
   {
     sm->screen_rgba[i] = sm->palette[sm->screen[i]];
   }
-  if (SDL_UpdateTexture(sm->texture, nullptr, sm->screen_rgba, (int)(sizeof(uint32_t) * (unsigned long)kScreenWidth)))
+  if (SDL_UpdateTexture(sm->texture, nullptr, sm->screen_rgba, (int)(sizeof(u32) * (unsigned long)kScreenWidth)))
   {
     SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't update the given texture rectangle with new pixel data: %s", SDL_GetError());
     exotique_panic(gm);
@@ -178,7 +178,7 @@ exotique_events(GameManager* gm)
         break;
 
       case SDL_CONTROLLERDEVICEADDED:
-        for (int i = 0; i < 4; ++i)
+        for (size_t i = 0; i < 4; ++i)
         {
           if (!gm->controllers[i])
           {
@@ -191,7 +191,7 @@ exotique_events(GameManager* gm)
       case SDL_CONTROLLERDEVICEREMOVED:
         {
           SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.which);
-          for (int i = 0; i < 4; ++i)
+          for (size_t i = 0; i < 4; ++i)
           {
             if (gm->controllers[i] == controller)
             {
@@ -251,8 +251,8 @@ exotique_events(GameManager* gm)
     }
   }
 
-  int numkeys = 0;
-  const uint8_t* keystate = SDL_GetKeyboardState(&numkeys);
+  i32 numkeys = 0;
+  const u8* keystate = SDL_GetKeyboardState(&numkeys);
   if (!keystate)
   {
     SDL_LogCritical(SDL_LOG_CATEGORY_INPUT, "Couldn't get a snapshot of the current state of the keyboard: %s", SDL_GetError());
@@ -261,7 +261,7 @@ exotique_events(GameManager* gm)
 
   for (size_t i = 0; i < eKey__COUNT; ++i)
   {
-    const int scancode = (int)gm->key_map[i];
+    const i32 scancode = (i32)gm->key_map[i];
 
     bool is_down = false;
 
@@ -282,8 +282,8 @@ exotique_init(GameManager* gm)
 
   gm->name = "🌴 Exotique v0.8β - SDL2 (26/05/17)";
 
-  sm->screen = malloc((unsigned long)kScreenPixels * sizeof(uint8_t));
-  sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(uint32_t));
+  sm->screen = malloc((unsigned long)kScreenPixels * sizeof(u8));
+  sm->screen_rgba = malloc((unsigned long)kScreenPixels * sizeof(u32));
 
   gm->key_map[eKey_up] = SDL_SCANCODE_UP;
   gm->key_map[eKey_down] = SDL_SCANCODE_DOWN;
@@ -315,7 +315,7 @@ exotique_unload(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
 
-  for (int i = 0; i < 4; ++i)
+  for (size_t i = 0; i < 4; ++i)
   {
     if (gm->controllers[i])
     {
@@ -409,7 +409,7 @@ exotique_update(GameManager* gm)
   }
 
   // Gamepads update input[0..3]
-  for (int i = 0; i < 4; ++i)
+  for (size_t i = 0; i < 4; ++i)
   {
     SDL_GameController* pad = gm->controllers[i];
     if (!pad)
@@ -482,8 +482,8 @@ exotique_update(GameManager* gm)
       ei->input[i].r3 = 1;
     }
 
-    ei->input[i].joystick.x = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
-    ei->input[i].joystick.y = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+    ei->input[i].joystick.xy.x = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+    ei->input[i].joystick.xy.y = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
   }
 }
 
@@ -560,11 +560,8 @@ exotique_panic(GameManager* gm)
 // XXX: Main function
 
 int
-main(const int argc, const char* argv[])
+main(void)
 {
-  (void)argc;
-  (void)argv;
-
   GameManager* gm = &g_game_manager;
   exotique_init(gm);
   game_init(&gm->ei);
