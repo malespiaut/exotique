@@ -123,7 +123,7 @@ ExotiqueInterface g_exotique_interface = {0};
 
 // XXX: game.c mandatory functions declarations
 
-void game_load(ExotiqueInterface* ei);
+void game_init(ExotiqueInterface* ei);
 void game_update(ExotiqueInterface* ei);
 void game_draw(ExotiqueInterface* ei);
 
@@ -293,7 +293,7 @@ exotique_events(GameManager* gm)
 }
 
 static void
-exotique_load(GameManager* gm, ExotiqueInterface* ei)
+exotique_init(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
 
@@ -505,7 +505,7 @@ exotique_update(GameManager* gm, ExotiqueInterface* ei)
 // XXX: SDL functions
 
 static void
-sdl_load(GameManager* gm)
+sdl2_init(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
 
@@ -548,7 +548,7 @@ sdl_load(GameManager* gm)
 }
 
 static void
-sdl_unload(GameManager* gm)
+sdl2_unload(GameManager* gm)
 {
   ScreenManager* sm = &gm->screen_manager;
 
@@ -560,7 +560,7 @@ sdl_unload(GameManager* gm)
 static void
 exotique_cleanup(GameManager* gm)
 {
-  sdl_unload(gm);
+  sdl2_unload(gm);
   exotique_unload(gm);
   SDL_Quit();
 }

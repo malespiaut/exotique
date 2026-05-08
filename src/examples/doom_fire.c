@@ -111,7 +111,7 @@ fire_draw(u8* screen)
 /* Exotique interface functions */
 
 void
-game_load(ExotiqueInterface* ei)
+game_init(ExotiqueInterface* ei)
 {
   /* Setting up the color palette */
   ei->palette[0] = 0x00000000;

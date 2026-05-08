@@ -356,7 +356,7 @@ numbers_draw(u8* screen, i32 x, i32 y, i32 number, i32 digits, color_t color)
 /* Exotique interface functions */
 
 void
-game_load(ExotiqueInterface* ei)
+game_init(ExotiqueInterface* ei)
 {
   /* Color palette */
   memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));

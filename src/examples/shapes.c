@@ -268,7 +268,7 @@ rectangle_line_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, u8 color)
 /* Exotique core functions */
 
 void
-game_load(ExotiqueInterface* ei)
+game_init(ExotiqueInterface* ei)
 {
   memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));
   /* Setting up the color palette */

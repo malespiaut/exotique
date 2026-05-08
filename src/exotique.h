@@ -58,6 +58,6 @@ struct ExotiqueInterface
   u64 ticks;
 };
 
-void game_load(ExotiqueInterface* ei);
+void game_init(ExotiqueInterface* ei);
 void game_update(ExotiqueInterface* ei);
 void game_draw(ExotiqueInterface* ei);

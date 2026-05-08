@@ -586,7 +586,7 @@ input(PlayerInput buttons)
 /* Exotique core functions */
 
 void
-game_load(ExotiqueInterface* ei)
+game_init(ExotiqueInterface* ei)
 {
   /* Color palette */
   memzero((u8*)ei->palette, 256 * sizeof(*ei->palette));

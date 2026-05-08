@@ -9,7 +9,7 @@ const i32 kScreenHeight = 200;
 /* Exotique interface functions */
 
 void
-game_load(ExotiqueInterface* ei)
+game_init(ExotiqueInterface* ei)
 {
   /* Setup the color palette here */
   (void)ei;

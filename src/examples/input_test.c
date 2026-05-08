@@ -232,7 +232,7 @@ memzero(u8* dest, u64 len)
 /* Exotique interface functions */
 
 void
-game_load(ExotiqueInterface* ei)
+game_init(ExotiqueInterface* ei)
 {
   /* Setting up the color palette */
   ei->palette[eColorTransparent] = 0x00000000;
