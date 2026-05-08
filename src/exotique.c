@@ -163,6 +163,8 @@ exotique_draw(GameManager* gm)
 static void
 exotique_events(GameManager* gm)
 {
+  ExotiqueInterface* ei = &gm->ei;
+
   SDL_Event event = {0};
 
   SDL_PumpEvents();
@@ -275,6 +277,7 @@ exotique_events(GameManager* gm)
 static void
 exotique_init(GameManager* gm)
 {
+  ExotiqueInterface* ei = &gm->ei;
   ScreenManager* sm = &gm->screen_manager;
 
   gm->name = "🌴 Exotique v0.8β - SDL2 (26/05/17)";
@@ -326,13 +329,15 @@ exotique_unload(GameManager* gm)
 }
 
 static void
-exotique_update(GameManager* gm, ExotiqueInterface* ei)
+exotique_update(GameManager* gm)
 {
+  ExotiqueInterface* ei = &gm->ei;
+
   ei->ticks = SDL_GetTicks64();
 
   memset(&ei->mouse, 0, sizeof(ei->mouse));
-  SDL_GetMouseState(&ei->mouse.x, &ei->mouse.y);
-  // SDL_GetGlobalMouseState(&gm->input_manager.mouse_x, &gm->input_manager.mouse_y);
+  SDL_GetMouseState(&ei->mouse.xy.x, &ei->mouse.xy.y);
+  // SDL_GetGlobalMouseState(&ei->mouse.xy.x, &ei->mouse.xy.y);
 
   memset(&ei->input, 0, sizeof(ei->input));
   exotique_events(gm);
@@ -560,19 +565,20 @@ main(const int argc, const char* argv[])
   (void)argc;
   (void)argv;
 
-  exotique_load(&g_game_manager, &g_exotique_interface);
-  game_load(&g_exotique_interface);
-  sdl_load(&g_game_manager);
+  GameManager* gm = &g_game_manager;
+  exotique_init(gm);
+  game_init(&gm->ei);
+  sdl2_init(gm);
 
   // Main loop
   while (!g_game_manager.exit)
   {
-    exotique_update(&g_game_manager, &g_exotique_interface);
-    game_update(&g_exotique_interface);
-    game_draw(&g_exotique_interface);
-    exotique_draw(&g_game_manager);
+    exotique_update(gm);
+    game_update(&gm->ei);
+    game_draw(&gm->ei);
+    exotique_draw(gm);
   }
 
-  exotique_cleanup(&g_game_manager);
+  exotique_cleanup(gm);
   return EXIT_SUCCESS;
 }
