@@ -229,6 +229,14 @@ exotique_events(GameManager* gm)
         }
         break;
 
+      case SDL_MOUSEBUTTONDOWN:
+        ei->mouse_click = 1;
+        break;
+
+      case SDL_MOUSEBUTTONUP:
+        ei->mouse_click = 0;
+        break;
+
       case SDL_KEYDOWN:
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
         {

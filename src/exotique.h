@@ -53,6 +53,8 @@ struct ExotiqueInterface
   u32* palette; /* [255] */
 
   vec2i_t mouse;
+  unsigned mouse_click : 1;
+
   PlayerInput input[4];
 
   u64 ticks;
