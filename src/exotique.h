@@ -1,25 +1,13 @@
 typedef signed char i8;
 typedef unsigned char u8;
-typedef float f32;
-typedef double f64;
 typedef short i16;
 typedef unsigned short u16;
-#if ARCH == 16
-typedef long i32;
-typedef unsigned long u32;
-#elif ARCH == 32 || ARCH == 64 
 typedef int i32;
 typedef unsigned int u32;
 typedef long i64;
 typedef unsigned long u64;
-#else
-/* PLEASE READ ME!!! */
-/* This piece of code IS DESIGNED TO TRIGGER A COMPILTION ERROR! */
-/* You MUST define ARCH on the line above (`#define ARCH 64`),
- * or using the compiler argument `-D` (for instance `-D ARCH=64`)
- * to avoid this compilation error. */
-extern int ERROR_ARCH_IS_NOT_DEFINED[-1];
-#endif
+typedef float f32;
+typedef double f64;
 
 typedef union vec2i_u vec2i_t;
 union vec2i_u
