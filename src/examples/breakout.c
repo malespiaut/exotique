@@ -20,19 +20,18 @@ memzero(u8* dest, u64 len)
 
 enum game_constants
 {
-  eBallWidth = 2,
-  eBallHeight = 2,
-  ePaddleWidth = 16,
-  ePaddleHeight = 2,
-  eBrickWidth = 8,
-  eBrickHeight = 3,
-  eBrickColumns = 18,
-  eBrickRows = 6,
-  eBricks = 108,
-  eTimeStop = 2000,
-  eBoundaryLeft = 8,
-  eBoundaryRight = 152,
-  eBoundaryTop = 16
+  kBallWidth = 2,
+  kBallHeight = 2,
+  kPaddleWidth = 16,
+  kPaddleHeight = 2,
+  kBrickWidth = 8,
+  kBrickHeight = 3,
+  kBrickColumns = 18,
+  kBrickRows = 6,
+  kBricks = 108,
+  kBoundaryLeft = 8,
+  kBoundaryRight = 152,
+  kBoundaryTop = 16
 };
 
 enum color_e
@@ -85,6 +84,7 @@ struct game_s
   i32 difficulty;
   i32 bricks;
   i32 shoot;
+  i32 start;
 };
 
 static game_t g_game = {0};
@@ -98,16 +98,16 @@ rectangle_fill_draw(u8* screen, i32 x1, i32 y1, i32 x2, i32 y2, color_t color)
 {
   if (x1 > x2)
   {
-    i32 temp = x1;
+    i32 tmp = x1;
     x1 = x2;
-    x2 = temp;
+    x2 = tmp;
   }
 
   if (y1 > y2)
   {
-    i32 temp = y1;
+    i32 tmp = y1;
     y1 = y2;
-    y2 = temp;
+    y2 = tmp;
   }
 
   {
@@ -136,134 +136,134 @@ rectangles_collide(i32 x1, i32 y1, i32 w1, i32 h1, i32 x2, i32 y2, i32 w2, i32 h
 }
 
 static void
-ball_collision_walls(void)
+ball_collision_walls(game_t* g)
 {
-  if (g_game.ball.position.xy.x + eBallWidth > eBoundaryRight)
+  if (g->ball.position.xy.x + kBallWidth > kBoundaryRight)
   {
-    g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
-    g_game.ball.position.xy.x += g_game.ball.slope.xy.x;
+    g->ball.slope.xy.x = -g->ball.slope.xy.x;
+    g->ball.position.xy.x += g->ball.slope.xy.x;
   }
 
-  if (g_game.ball.position.xy.x < eBoundaryLeft)
+  if (g->ball.position.xy.x < kBoundaryLeft)
   {
-    g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
-    g_game.ball.position.xy.x += g_game.ball.slope.xy.x;
+    g->ball.slope.xy.x = -g->ball.slope.xy.x;
+    g->ball.position.xy.x += g->ball.slope.xy.x;
   }
 
-  if (g_game.ball.position.xy.y < eBoundaryTop)
+  if (g->ball.position.xy.y < kBoundaryTop)
   {
-    g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
-    g_game.ball.position.xy.y += g_game.ball.slope.xy.y;
+    g->ball.slope.xy.y = -g->ball.slope.xy.y;
+    g->ball.position.xy.y += g->ball.slope.xy.y;
   }
 
-  if (g_game.ball.position.xy.y > kScreenHeight - eBallHeight)
+  if (g->ball.position.xy.y > kScreenHeight - kBallHeight)
   {
-    g_game.shoot = 1;
-    --g_game.player.lives;
+    g->shoot = 1;
+    --g->player.lives;
   }
 }
 
 static void
-ball_collision_paddle(void)
+ball_collision_paddle(game_t* g)
 {
-  i32 ball_bottom = g_game.ball.position.xy.y + eBallHeight;
-  i32 paddle_left = g_game.player.position.xy.x;
-  i32 paddle_right = paddle_left + ePaddleWidth;
+  i32 ball_bottom = g->ball.position.xy.y + kBallHeight;
+  i32 paddle_left = g->player.position.xy.x;
+  i32 paddle_right = paddle_left + kPaddleWidth;
 
-  if ((ball_bottom == g_game.player.position.xy.y) &&
-      (g_game.ball.position.xy.x >= paddle_left) &&
-      (g_game.ball.position.xy.x <= paddle_right))
+  if ((ball_bottom == g->player.position.xy.y) &&
+      (g->ball.position.xy.x >= paddle_left) &&
+      (g->ball.position.xy.x <= paddle_right))
   {
-    g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
+    g->ball.slope.xy.y = -g->ball.slope.xy.y;
   }
 }
 
 static void
-ball_collision_bricks(void)
+ball_collision_bricks(game_t* g)
 {
   i32 i = 0;
-  for (; i < eBricks; ++i)
+  for (; i < kBricks; ++i)
   {
-    if (!g_game.brick[i].hit)
+    if (!g->brick[i].hit)
     {
-      i32 next_x = g_game.ball.position.xy.x + g_game.ball.slope.xy.x;
-      i32 next_y = g_game.ball.position.xy.y + g_game.ball.slope.xy.y;
+      i32 next_x = g->ball.position.xy.x + g->ball.slope.xy.x;
+      i32 next_y = g->ball.position.xy.y + g->ball.slope.xy.y;
 
-      if (rectangles_collide(next_x, g_game.ball.position.xy.y, eBallWidth, eBallHeight, g_game.brick[i].position.xy.x, g_game.brick[i].position.xy.y, g_game.brick[i].size.wh.width, g_game.brick[i].size.wh.height))
+      if (rectangles_collide(next_x, g->ball.position.xy.y, kBallWidth, kBallHeight, g->brick[i].position.xy.x, g->brick[i].position.xy.y, g->brick[i].size.wh.width, g->brick[i].size.wh.height))
       {
-        g_game.brick[i].hit = 1;
-        g_game.ball.slope.xy.x = -g_game.ball.slope.xy.x;
-        --g_game.bricks;
-        g_game.player.score += 10;
+        g->brick[i].hit = 1;
+        g->ball.slope.xy.x = -g->ball.slope.xy.x;
+        --g->bricks;
+        g->player.score += 10;
       }
-      else if (rectangles_collide(g_game.ball.position.xy.x, next_y, eBallWidth, eBallHeight, g_game.brick[i].position.xy.x, g_game.brick[i].position.xy.y, g_game.brick[i].size.wh.width, g_game.brick[i].size.wh.height))
+      else if (rectangles_collide(g->ball.position.xy.x, next_y, kBallWidth, kBallHeight, g->brick[i].position.xy.x, g->brick[i].position.xy.y, g->brick[i].size.wh.width, g->brick[i].size.wh.height))
       {
-        g_game.brick[i].hit = 1;
-        g_game.ball.slope.xy.y = -g_game.ball.slope.xy.y;
-        --g_game.bricks;
-        g_game.player.score += 10;
+        g->brick[i].hit = 1;
+        g->ball.slope.xy.y = -g->ball.slope.xy.y;
+        --g->bricks;
+        g->player.score += 10;
       }
     }
   }
 }
 
 static void
-ball_reset(void)
+ball_reset(game_t* g)
 {
-  g_game.ball.position.xy.x = kScreenWidth / 2;
-  g_game.ball.position.xy.y = kScreenHeight / 2;
-  g_game.shoot = 0;
+  g->ball.position.xy.x = kScreenWidth / 2;
+  g->ball.position.xy.y = kScreenHeight / 2;
+  g->shoot = 0;
 }
 
 static void
-ball_move(void)
+ball_move(game_t* g)
 {
-  if (!g_game.shoot)
+  if (!g->shoot && g->player.lives)
   {
-    g_game.ball.position.xy.x += g_game.ball.speed.xy.x * g_game.ball.slope.xy.x;
-    g_game.ball.position.xy.y += g_game.ball.speed.xy.y * g_game.ball.slope.xy.y;
+    g->ball.position.xy.x += g->ball.speed.xy.x * g->ball.slope.xy.x;
+    g->ball.position.xy.y += g->ball.speed.xy.y * g->ball.slope.xy.y;
   }
   else
   {
-    ball_reset();
+    ball_reset(g);
   }
 }
 
 static void
-ball_update(void)
+ball_update(game_t* g)
 {
-  ball_collision_walls();
-  ball_collision_paddle();
-  ball_collision_bricks();
-  ball_move();
+  ball_collision_walls(g);
+  ball_collision_paddle(g);
+  ball_collision_bricks(g);
+  ball_move(g);
 }
 
 static void
-bricks_draw(u8* screen)
+bricks_draw(u8* screen, game_t* g)
 {
   i32 i = 0;
-  for (; i < eBricks; ++i)
+  for (; i < kBricks; ++i)
   {
-    if (!g_game.brick[i].hit)
+    if (!g->brick[i].hit)
     {
       rectangle_fill_draw(screen,
-                          g_game.brick[i].position.xy.x,
-                          g_game.brick[i].position.xy.y,
-                          g_game.brick[i].position.xy.x + g_game.brick[i].size.wh.width,
-                          g_game.brick[i].position.xy.y + g_game.brick[i].size.wh.height,
-                          g_game.brick[i].color);
+                          g->brick[i].position.xy.x,
+                          g->brick[i].position.xy.y,
+                          g->brick[i].position.xy.x + g->brick[i].size.wh.width,
+                          g->brick[i].position.xy.y + g->brick[i].size.wh.height,
+                          g->brick[i].color);
     }
   }
 }
 
 static void
-paddle_draw(u8* screen)
+paddle_draw(u8* screen, game_t* g)
 {
   rectangle_fill_draw(screen,
-                      g_game.player.position.xy.x,
-                      g_game.player.position.xy.y,
-                      g_game.player.position.xy.x + ePaddleWidth,
-                      g_game.player.position.xy.y + ePaddleHeight,
+                      g->player.position.xy.x,
+                      g->player.position.xy.y,
+                      g->player.position.xy.x + kPaddleWidth,
+                      g->player.position.xy.y + kPaddleHeight,
                       eColorRed);
 }
 
@@ -279,13 +279,13 @@ walls_draw(u8* screen)
 }
 
 static void
-ball_draw(u8* screen)
+ball_draw(u8* screen, game_t* g)
 {
   rectangle_fill_draw(screen,
-                      g_game.ball.position.xy.x,
-                      g_game.ball.position.xy.y,
-                      g_game.ball.position.xy.x + eBallWidth,
-                      g_game.ball.position.xy.y + eBallHeight,
+                      g->ball.position.xy.x,
+                      g->ball.position.xy.y,
+                      g->ball.position.xy.x + kBallWidth,
+                      g->ball.position.xy.y + kBallHeight,
                       eColorRed);
 }
 
@@ -382,31 +382,32 @@ game_init(ExotiqueInterface* ei)
 
   /* Player init */
   g_game.player.lives = 3;
-  g_game.player.position.xy.x = kScreenWidth / 2 - ePaddleWidth / 2;
+  g_game.player.position.xy.x = kScreenWidth / 2 - kPaddleWidth / 2;
   g_game.player.position.xy.y = kScreenHeight - 6;
   g_game.player.score = 0;
 
   /* Game init */
   g_game.difficulty = 1;
   g_game.shoot = 1;
+  g_game.start = 0;
 
   /* Bricks init */
-  g_game.bricks = eBrickColumns * eBrickRows;
+  g_game.bricks = kBrickColumns * kBrickRows;
   /* Bricks block is set at position (8, 28) */
   {
     i32 n = 0;
     i32 color = 0;
 
     i32 i = 0;
-    for (; i < eBrickRows; ++i)
+    for (; i < kBrickRows; ++i)
     {
       i32 j = 0;
-      for (; j < eBrickColumns; ++j)
+      for (; j < kBrickColumns; ++j)
       {
-        g_game.brick[n].position.xy.x = 8 + (j * eBrickWidth);
-        g_game.brick[n].position.xy.y = 28 + (i * eBrickHeight);
-        g_game.brick[n].size.wh.width = eBrickWidth;
-        g_game.brick[n].size.wh.height = eBrickHeight;
+        g_game.brick[n].position.xy.x = 8 + (j * kBrickWidth);
+        g_game.brick[n].position.xy.y = 28 + (i * kBrickHeight);
+        g_game.brick[n].size.wh.width = kBrickWidth;
+        g_game.brick[n].size.wh.height = kBrickHeight;
         g_game.brick[n].color = (color_t)((color % 6) + 2);
         g_game.brick[n].hit = 0;
         ++n;
@@ -417,30 +418,35 @@ game_init(ExotiqueInterface* ei)
 }
 
 static void
-paddle_update(i32 mouse_x)
+paddle_update(game_t* g, i32 mouse_x)
 {
-  g_game.player.position.xy.x = mouse_x;
+  g->player.position.xy.x = mouse_x;
 
   /* Keeping the paddle within the boundaries of the game area */
-  if (g_game.player.position.xy.x < 8)
+  if (g->player.position.xy.x < 8)
   {
-    g_game.player.position.xy.x = 8;
+    g->player.position.xy.x = 8;
   }
-  if (g_game.player.position.xy.x > 136)
+  if (g->player.position.xy.x > 136)
   {
-    g_game.player.position.xy.x = 136;
+    g->player.position.xy.x = 136;
   }
 }
 
 void
 game_update(ExotiqueInterface* ei)
 {
-  if (g_game.player.lives)
+  if (ei->mouse_click)
   {
-    ball_update();
+    g_game.start = 1;
   }
 
-  paddle_update(ei->mouse.xy.x);
+  if (g_game.start && g_game.player.lives)
+  {
+    ball_update(&g_game);
+  }
+
+  paddle_update(&g_game, ei->mouse.xy.x);
 }
 
 void
@@ -449,9 +455,9 @@ game_draw(ExotiqueInterface* ei)
   memzero(ei->screen, (u64)kScreenPixels);
 
   walls_draw(ei->screen);
-  bricks_draw(ei->screen);
-  paddle_draw(ei->screen);
-  ball_draw(ei->screen);
+  bricks_draw(ei->screen, &g_game);
+  paddle_draw(ei->screen, &g_game);
+  ball_draw(ei->screen, &g_game);
 
   /* Draw score */
   numbers_draw(ei->screen, 36, 2, g_game.player.score, 3, eColorWhite);
