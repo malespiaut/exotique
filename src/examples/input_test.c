@@ -134,6 +134,9 @@ static const u8 msx01x02_8x16_font[96][16] = {
 
 static const u8* font_ptrs[96];
 
+static const u8 mouse_cursor[4] = {0x8c, 0xef, 0xeb, 0x10};
+static color_t rainbow_color = eColorRipePlum;
+
 /* Drawing primitives */
 
 static void
@@ -193,7 +196,8 @@ bit_draw(ExotiqueInterface* ei, const u8* sprite, i32 x, i32 y, i32 width, i32 h
     i32 col = 0;
     for (; col < width; ++col)
     {
-      if (sprite[row] << col & 0x80)
+      i32 bit_idx = row * width + col;
+      if (sprite[bit_idx >> 3] << (bit_idx & 7) & 0x80)
       {
         if ((x + col) >= 0 && (x + col < kScreenWidth) && (y + row) >= 0 && (y + row) < kScreenHeight)
         {
@@ -267,6 +271,12 @@ void
 game_update(ExotiqueInterface* ei)
 {
   (void)ei;
+
+  ++rainbow_color;
+  if (rainbow_color >= eColor__COUNT)
+  {
+    rainbow_color = eColorRipePlum;
+  }
 }
 
 static void
@@ -338,5 +348,14 @@ game_draw(ExotiqueInterface* ei)
     }
   }
 
-  text_draw(ei, 10, 220, eColorFrenchGray, "P1 shares Keyboard mapping.");
+  if (ei->mouse_click)
+  {
+    text_draw(ei, 10, 220, rainbow_color, "Mouse click is UP!!!");
+  }
+  else
+  {
+    text_draw(ei, 10, 220, eColorTorchRed, "Mouse click is DOWN...");
+  }
+
+  bit_draw(ei, mouse_cursor, ei->mouse.xy.x, ei->mouse.xy.y, 4, 8, rainbow_color);
 }
