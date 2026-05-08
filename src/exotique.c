@@ -12,6 +12,19 @@
 #include <SDL.h>
 #pragma GCC diagnostic pop
 
+#include "exotique.h"
+
+typedef int8_t i8;
+typedef uint8_t u8;
+typedef int16_t i16;
+typedef uint16_t u16;
+typedef int32_t i32;
+typedef uint32_t u32;
+typedef int64_t i64;
+typedef uint64_t u64;
+typedef float f32;
+typedef double f64;
+
 // XXX: Screen constants
 
 extern const int kScreenWidth;
@@ -73,53 +86,12 @@ struct GameManager
   SDL_Scancode key_map[16]; // 16 buttons
   uint8_t key_states[16];   // 16 buttons
   SDL_GameController* controllers[4];
-};
-
-typedef struct vec2i_s vec2i_t;
-struct vec2i_s
-{
-  int32_t x;
-  int32_t y;
-};
-
-typedef struct PlayerInput PlayerInput;
-struct PlayerInput
-{
-  unsigned up : 1;
-  unsigned down : 1;
-  unsigned left : 1;
-  unsigned right : 1;
-  unsigned select : 1;
-  unsigned start : 1;
-  unsigned a : 1;
-  unsigned b : 1;
-  unsigned x : 1;
-  unsigned y : 1;
-  unsigned l1 : 1;
-  unsigned r1 : 1;
-  unsigned l2 : 1;
-  unsigned r2 : 1;
-  unsigned l3 : 1;
-  unsigned r3 : 1;
-  vec2i_t joystick;
-};
-
-typedef struct ExotiqueInterface ExotiqueInterface;
-struct ExotiqueInterface
-{
-  uint8_t* screen;   //[kScreenWidth * kScreenHeight];
-  uint32_t* palette; //[256];
-
-  vec2i_t mouse;
-  PlayerInput input[4];
-
-  uint64_t ticks;
+  ExotiqueInterface ei;
 };
 
 // XXX: Global data structure
 
 static GameManager g_game_manager = {0};
-ExotiqueInterface g_exotique_interface = {0};
 
 // XXX: game.c mandatory functions declarations
 
