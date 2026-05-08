@@ -258,7 +258,7 @@ game_update(ExotiqueInterface* ei)
     return;
   }
 
-  logic();                      /* Update the game logic */
+  logic(); /* Update the game logic */
 }
 
 void
